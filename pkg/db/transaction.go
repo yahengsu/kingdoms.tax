@@ -1,5 +1,9 @@
 // db/transaction.go
-// Defines the Transaction type for interaction with mongodb
+/* Defines:
+* Accounts - a collection of stored accounts
+* Account - Specific account with all txns
+* Transaction - a transaction object
+ */
 
 package db
 
@@ -7,9 +11,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type Addresses struct {
+	Id    primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // don't know if we need this
+	Addrs []string           `json:"addresses" bson:"addresses"`
+}
+
 type Account struct {
-	Id      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Address string             `json:"address" bson:"address"` // don't know if we need this
+	Id      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // don't know if we need this
+	Address string             `json:"address" bson:"address"`
 	Txns    []Transaction      `json:"transactions" bson:"transactions"`
 }
 
