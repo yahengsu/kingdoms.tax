@@ -24,17 +24,17 @@ type Account struct {
 
 type Transaction struct {
 	BlockHash string `json:"blockHash" bson:"blockHash"`
-	BlockNum  int    `json:"blockNumber" bson:"blockNumber"`
+	BlockNum  uint64  `json:"blockNumber" bson:"blockNumber"`
 	From      string `json:"from" bson:"from"`
-	Timestamp int64  `json:"timestamp" bson:"timestamp"`
-	Gas       int    `json:"gas" bson:"gas"`
-	GasPrice  int    `json:"gasPrice" bson:"gasPrice"`
+	Timestamp uint64 `json:"timestamp" bson:"timestamp"`
+	Gas       uint64 `json:"gas" bson:"gas"`
+	GasPrice  uint64 `json:"gasPrice" bson:"gasPrice"`
 	Hash      string `json:"hash" bson:"hash"`
 	Input     string `json:"input" bson:"input"`
-	Nonce     int    `json:"nonce" bson:"nonce"`
+	Nonce     uint64 `json:"nonce" bson:"nonce"`
 	To        string `json:"to" bson:"to"`
-	TxnIndex  int    `json:"transactionIndex" bson:"transactionIndex"`
-	Value     int    `json:"value" bson:"value"`
-	ShardID   int    `json:"shardID" bson:"shardID"`
-	ToShardID int    `json:"toShardID" bson:"toShardID"`
+	TxnIndex  uint   `json:"transactionIndex" bson:"transactionIndex"`
+	Value     uint64 `json:"value" bson:"value"`
+	ShardID   uint   `json:"shardID" bson:"shardID"`
+	ToShardID uint   `json:"toShardID" bson:"toShardID"`
 }
