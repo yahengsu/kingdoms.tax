@@ -3,20 +3,29 @@
 
 package db
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"context"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 
 const ()
 
-var client *mongo.Client // is this the best way to track mongo connection?
+//var client *mongo.Client // is this the best way to track mongo connection?
 
 /*
 	Creates MongoClient object.
 	Returns:
-		* (*mongo.Client, nil) if success
-		* (nil, error) if fail
+		* nil if success
+		* error if fail
 */
-func InitMongoClient() (*mongo.Client, error) {
-	return nil, nil
+func InitMongoClient(uri string) *mongo.Client {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	if err != nil {
+		panic(err)
+	}
+	return client
 }
 
 /*
@@ -26,7 +35,7 @@ func InitMongoClient() (*mongo.Client, error) {
 		* ([]Transaction, nil) if success
 		* (nil, error) if fail
 */
-func (acc *Account) GetAllTxns() ([]Transaction, error) {
+func GetAllTxns(address string) ([]Transaction, error) {
 	return nil, nil
 }
 
@@ -37,7 +46,9 @@ func (acc *Account) GetAllTxns() ([]Transaction, error) {
 		* ([]Transaction, nil) if success
 		* (nil, error) if fail
 */
-func (acc *Account) GetTxnsBetweenTimes(start, end int64) ([]Transaction, error) {
+// db.txns.Find({"timestamp": {"$gte": start, "$lte": end}}).Sort()
+func GetTxnsBetweenTimes(start, end int64) ([]Transaction, error) {
+
 	return nil, nil
 }
 
@@ -45,7 +56,7 @@ func (acc *Account) GetTxnsBetweenTimes(start, end int64) ([]Transaction, error)
 	Sorts received txns args and appends to specific account
 	Returns: nil if success, error if fail
 */
-func (acc *Account) AppendMultipleTxn(txns []Transaction) error {
+func AppendMultipleTxn(txns []Transaction) error {
 	return nil
 }
 
@@ -53,7 +64,7 @@ func (acc *Account) AppendMultipleTxn(txns []Transaction) error {
 	Append single transaction to specific account
 	Returns: nil if success, error if fail
 */
-func (acc *Account) AppendSingleTxn(txn Transaction) error {
+func AppendSingleTxn(txn Transaction) error {
 	return nil
 }
 
@@ -61,6 +72,18 @@ func (acc *Account) AppendSingleTxn(txn Transaction) error {
 	Create document for new account
 	Returns: nil if success, error if fail
 */
-func (acc *Account) InsertNewAccount() error {
+func InsertNewAccount(address string) error {
 	return nil
 }
+
+// MongoDB Find examble
+/*
+	result, err := client.Database("dfk-txns").Collection("txns").Find(context.Background(), bson.M{"address": "0x0"})
+	if err != nil {
+		panic(err)
+	}
+
+	for result.Next(context.Background()) {
+		fmt.Printf("%v", result.Current)
+	}
+*/
