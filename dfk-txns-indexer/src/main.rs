@@ -10,6 +10,8 @@ use std::env;
 use std::fs;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
+mod contracts;
+
 #[derive(Serialize, Deserialize)]
 struct AbiJson {
     erc20: Abi,
@@ -113,8 +115,7 @@ fn format_logs(logs: Vec<Log>, abi_type: String) -> serde_json::Value {
         println!("txn to: {:?}", log.topics[2]);
         if abi_type == "erc20" {
             println!("amt: {}", log.data.to_string());
-        }
-        else if abi_type == "erc721" {
+        } else if abi_type == "erc721" {
             println!("id: {:?}", log.topics[3]);
         }
     }
