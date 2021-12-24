@@ -8,9 +8,15 @@ use ethers::{
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
+use std::sync::Arc;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
+use ethers::contract::EthEvent;
+use ethers::contract::EthLogDecode;
 mod contracts;
+
+use contracts::Erc20;
+use contracts::Erc721;
 
 #[derive(Serialize, Deserialize)]
 struct AbiJson {
@@ -68,8 +74,10 @@ async fn main() -> Result<()> {
     let abis: AbiJson = serde_json::from_str(&abi_data).expect("Couldn't read abi json string");
 
     // Activate harmony provider
-    let provider = Provider::<Http>::try_from("https://api.s0.t.hmny.io")
-        .expect("Could not instantiate HTTP Provider");
+    let provider = Arc::new(
+        Provider::<Http>::try_from("https://api.s0.t.hmny.io")
+            .expect("Could not instantiate HTTP Provider"),
+    );
 
     // Get transfer events from the ABIs
     let erc20_transfer = abis.erc20.event("Transfer")?;
@@ -78,14 +86,28 @@ async fn main() -> Result<()> {
     let erc20_filter = Filter::new()
         .select(start_block..)
         .event(&erc20_transfer.abi_signature())
-        .address(ValueOrArray::Array(erc20s));
+        .address(ValueOrArray::Array(erc20s.clone()));
 
     let erc721_filter = Filter::new()
         .select(start_block..)
         .event(&erc721_transfer.abi_signature())
         .address(ValueOrArray::Array(erc721s));
 
+    let erc20 = Erc20::Erc20::new(H160::zero(), provider.clone());
+
+    let mut erc_transfer_filter = erc20.transfer_filter();
+    erc_transfer_filter.filter = erc_transfer_filter
+        .filter
+        .clone()
+        .select(start_block..)
+        .event(&erc20_transfer.abi_signature())
+        .address(ValueOrArray::Array(erc20s));
+
+    let transfers = erc_transfer_filter.query().await?;
+    transfers.iter().for_each(|t| eprintln!("{:#?}", t));
+
     //TODO: Run this periodically, increasing filter blockrange by BLOCKS_PER_REQ until we reach current block.
+
     index_txns_in_filter(erc20_filter, &provider, String::from("erc20")).await?;
     index_txns_in_filter(erc721_filter, &provider, String::from("erc721")).await?;
     Ok(())
