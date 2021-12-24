@@ -100,7 +100,6 @@ async fn main() -> Result<()> {
         .filter
         .clone()
         .select(start_block..)
-        .event(&erc20_transfer.abi_signature())
         .address(ValueOrArray::Array(erc20s));
 
     let transfers = erc_transfer_filter.query().await?;
