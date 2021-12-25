@@ -22,7 +22,7 @@ func genTimeFilter(start, end int64) bson.D {
 		}},
 	}
 }
-func genGroupFilter() bson.D {
+func genGroupPipe() bson.D {
 	return bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "txn_res"}, {Key: "txns", Value: bson.D{
@@ -31,8 +31,22 @@ func genGroupFilter() bson.D {
 		}},
 	}
 }
-func genUnwind() bson.D {
+func genUnwindPipe() bson.D {
 	return bson.D{
 		{Key: "$unwind", Value: "$txns"},
+	}
+}
+func genCountPipe() bson.D {
+	return bson.D{
+		{Key: "$count", Value: "txn_count"},
+	}
+}
+func genAppendTxnPipe(txns []Transaction) bson.D {
+	return bson.D{
+		{Key: "$push", Value: bson.D{
+			{Key: "txns", Value: bson.D{
+				{Key: "$each", Value: txns},
+			}},
+		}},
 	}
 }

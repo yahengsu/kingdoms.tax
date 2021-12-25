@@ -5,18 +5,14 @@ package db
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
+	"math"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-type DBConnection struct {
-	init bool
-	conn *mongo.Client
-	coll *mongo.Collection
-}
 
 var client DBConnection
 
@@ -44,8 +40,27 @@ func InitMongoClient(uri string) error {
 		(txn_count, page_count) if success
 		(0, 0) if fail
 */
-func GetAccountStats(address string, start, end int64) (int, int) {
-	return 0, 0
+func GetAccountStats(address string, start, end int64) (int, int, error) {
+	addressMatch := genAddressMatch(address)
+	unwindTxns := genUnwindPipe()
+	timeFilter := genTimeFilter(start, end)
+	count := genCountPipe()
+
+	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, count}
+	cursor, err := performAggregation(pipe)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	cursor.Next(context.TODO())
+	txn_count := struct {
+		Count float64 `json:"txn_count" bson:"txn_count"`
+	}{}
+	cursor.Decode(&txn_count)
+
+	num_pages := int(math.Ceil(txn_count.Count / PAGE_SIZE))
+
+	return int(txn_count.Count), num_pages, nil
 }
 
 /*
@@ -54,9 +69,10 @@ func GetAccountStats(address string, start, end int64) (int, int) {
 		([]Transaction, nil) if success
 		(nil, error) if fail
 */
-func GetAllTxns(address string) ([]Transaction, error) {
+func GetAllTxns(address string) ([]byte, error) {
 	txns_res := []Transaction{}
-	return txns_res, nil
+	fmt.Println(txns_res)
+	return nil, nil
 }
 
 /*
@@ -65,12 +81,12 @@ func GetAllTxns(address string) ([]Transaction, error) {
 		([]byte, nil) if success
 		(nil, error) if fail
 */
-func GetTxnsBetweenTimes(address string, start, end int64) ([]byte, error) {
+func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error) {
 	// Aggregation pipes
 	addressMatch := genAddressMatch(address)
-	unwindTxns := genUnwind()
+	unwindTxns := genUnwindPipe()
 	timeFilter := genTimeFilter(start, end)
-	group := genGroupFilter()
+	group := genGroupPipe()
 
 	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, group}
 
@@ -83,15 +99,17 @@ func GetTxnsBetweenTimes(address string, start, end int64) ([]byte, error) {
 	cursor.Next(context.TODO())
 	cursor.Decode(&txn)
 
-	return json.Marshal(txn.Txns)
+	return txn.Txns, nil
 }
 
 /*
-	Sorts new txns and appends to address
+	Sorts new json string txns and appends to address
 	Returns: nil if success, error if fail
 */
 func AppendTxns(address string, txns []Transaction) error {
-	return nil
+	update := genAppendTxnPipe(txns)
+	err := performUpdate(address, update)
+	return err
 }
 
 /*
@@ -103,12 +121,21 @@ func InsertNewAccount(address string) error {
 		Address: address,
 		Txns:    []Transaction{},
 	}
-
 	res, err := performInsert([]interface{}{new_acc})
 	if err != nil {
 		return err
 	}
 	log.Printf("Inserted new account with id: %v", res.InsertedIDs...)
+
+	return nil
+}
+
+func performUpdate(address string, update bson.D) error {
+	res, err := client.coll.UpdateOne(context.TODO(), bson.D{{Key: "address", Value: address}}, update)
+	if err != nil {
+		return err
+	}
+	log.Printf("Inserted transactions for objectID: %v", res.ModifiedCount)
 
 	return nil
 }
