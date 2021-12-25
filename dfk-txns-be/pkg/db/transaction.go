@@ -7,6 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const (
+	PAGE_SIZE = 10
+)
+
 // Used internally to pass paged items back to API
 type PagedTxns struct {
 	Txns       []Transaction
@@ -15,13 +19,9 @@ type PagedTxns struct {
 	Page       int   // Current page of transactions
 }
 
-/*
-Idea of storing addresses in list for faster lookup.
-Not sure if it's fast enough to look through Accounts document instead
-*/
-type Addresses struct {
-	Id    primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // don't know if we need this
-	Addrs []string           `json:"addresses" bson:"addresses"`
+// Transaction wrapper
+type TxnWrapper struct {
+	Txns []Transaction `json:"txns" bson:"txns"`
 }
 
 // Interaction with MongoDB
