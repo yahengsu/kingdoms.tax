@@ -211,6 +211,9 @@ mod erc721_mod {
         pub operator: ethers::core::types::Address,
         pub approved: bool,
     }
+
+    use serde::{Deserialize, Serialize};
+
     #[derive(
         Clone,
         Debug,
@@ -219,6 +222,8 @@ mod erc721_mod {
         PartialEq,
         ethers :: contract :: EthEvent,
         ethers :: contract :: EthDisplay,
+        Deserialize,
+        Serialize,
     )]
     #[ethevent(name = "Transfer", abi = "Transfer(address,address,uint256)")]
     pub struct TransferFilter {

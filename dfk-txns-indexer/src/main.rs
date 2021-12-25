@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ethers::prelude::LogMeta;
 use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::{Filter, Log, ValueOrArray};
 use ethers::{
@@ -12,7 +13,6 @@ use std::sync::Arc;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 
 use ethers::contract::EthEvent;
-use ethers::contract::EthLogDecode;
 mod contracts;
 
 use contracts::Erc20;
@@ -32,6 +32,12 @@ struct ContractJson {
 }
 
 const BLOCKS_PER_REQ: i32 = 100;
+
+#[derive(Serialize, Deserialize)]
+enum DfkTransfer {
+    Erc20(Erc20::TransferFilter),
+    Erc721(Erc721::TransferFilter),
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -69,76 +75,76 @@ async fn main() -> Result<()> {
         .map(|s| H160::from_str(&s).expect("Error converting addr string to H160"))
         .collect();
 
-    // Parse out ABIs for contracts
-    let abi_data = fs::read_to_string(abi_path).expect("unable to read abi file");
-    let abis: AbiJson = serde_json::from_str(&abi_data).expect("Couldn't read abi json string");
-
     // Activate harmony provider
     let provider = Arc::new(
         Provider::<Http>::try_from("https://api.s0.t.hmny.io")
             .expect("Could not instantiate HTTP Provider"),
     );
 
-    // Get transfer events from the ABIs
-    let erc20_transfer = abis.erc20.event("Transfer")?;
-    let erc721_transfer = abis.erc721.event("Transfer")?;
-
-    let erc20_filter = Filter::new()
-        .select(start_block..)
-        .event(&erc20_transfer.abi_signature())
-        .address(ValueOrArray::Array(erc20s.clone()));
-
-    let erc721_filter = Filter::new()
-        .select(start_block..)
-        .event(&erc721_transfer.abi_signature())
-        .address(ValueOrArray::Array(erc721s));
+    let selection = start_block..start_block + 100;
 
     let erc20 = Erc20::Erc20::new(H160::zero(), provider.clone());
-
-    let mut erc_transfer_filter = erc20.transfer_filter();
-    erc_transfer_filter.filter = erc_transfer_filter
+    let mut erc20_transfer_filter = erc20.transfer_filter();
+    erc20_transfer_filter.filter = erc20_transfer_filter
         .filter
-        .clone()
-        .select(start_block..)
+        .select(selection.clone())
         .address(ValueOrArray::Array(erc20s));
 
-    let transfers = erc_transfer_filter.query().await?;
-    transfers.iter().for_each(|t| eprintln!("{:#?}", t));
+    let mut transfers: Vec<(DfkTransfer, LogMeta)> = erc20_transfer_filter
+        .query_with_meta()
+        .await?
+        .into_iter()
+        .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
+        .collect();
+
+    let erc721 = Erc721::Erc721::new(H160::zero(), provider.clone());
+    let mut erc721_transfer_filter = erc721.transfer_filter();
+    erc721_transfer_filter.filter = erc721_transfer_filter
+        .filter
+        .select(selection)
+        .address(ValueOrArray::Array(erc721s));
+
+    transfers.extend(
+        erc721_transfer_filter
+            .query_with_meta()
+            .await?
+            .into_iter()
+            .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
+    );
 
     //TODO: Run this periodically, increasing filter blockrange by BLOCKS_PER_REQ until we reach current block.
-
-    index_txns_in_filter(erc20_filter, &provider, String::from("erc20")).await?;
-    index_txns_in_filter(erc721_filter, &provider, String::from("erc721")).await?;
+    index_txns_in_filter(&transfers).await?;
     Ok(())
 }
 
-async fn index_txns_in_filter(
-    filter: Filter,
-    provider: &Provider<Http>,
-    abi_type: String,
-) -> Result<()> {
-    let logs = provider.get_logs(&filter).await?;
-    Ok(push_txns_to_mongo_service(format_logs(logs, abi_type)).await?)
+async fn index_txns_in_filter(logs: &Vec<(DfkTransfer, LogMeta)>) -> Result<()> {
+    Ok(push_txns_to_mongo_service(format_logs(logs)).await?)
 }
 
 async fn push_txns_to_mongo_service(logs: serde_json::Value) -> Result<()> {
     //TODO: Push valid transactions to Rick's mongo service once it's ready
-    println!("{:?}", logs);
+    //
+    println!("{}", logs);
     Ok(())
 }
 
-fn format_logs(logs: Vec<Log>, abi_type: String) -> serde_json::Value {
+fn format_logs(logs: &Vec<(DfkTransfer, LogMeta)>) -> serde_json::Value {
     //TODO: Format these into json to send to Rick's mongo service
-    for log in logs.iter() {
-        println!("{:?}", log);
-        println!("txn hash: {:?}", log.transaction_hash);
-        println!("txn from: {:?}", log.topics[1]);
-        println!("txn to: {:?}", log.topics[2]);
-        if abi_type == "erc20" {
-            println!("amt: {}", log.data.to_string());
-        } else if abi_type == "erc721" {
-            println!("id: {:?}", log.topics[3]);
+
+    let mut transfers = vec![];
+    for (transfer, meta) in logs.iter() {
+        println!("{:?}", meta);
+        println!("txn hash: {:?}", meta.transaction_hash);
+
+        /*
+        match transfer {
+            DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => todo!(),
+            DfkTransfer::Erc721(Erc721::TransferFilter { from, to, token_id }) => todo!(),
         }
+         */
+
+        transfers.push(transfer.clone());
     }
-    serde_json::from_str("{}").expect("lol")
+
+    serde_json::to_value(&transfers).unwrap()
 }

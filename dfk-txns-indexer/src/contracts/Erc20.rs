@@ -153,6 +153,9 @@ mod erc20_mod {
         pub spender: ethers::core::types::Address,
         pub value: ethers::core::types::U256,
     }
+
+    use serde::{Deserialize, Serialize};
+
     #[derive(
         Clone,
         Debug,
@@ -161,6 +164,8 @@ mod erc20_mod {
         PartialEq,
         ethers :: contract :: EthEvent,
         ethers :: contract :: EthDisplay,
+        Serialize,
+        Deserialize,
     )]
     #[ethevent(name = "Transfer", abi = "Transfer(address,address,uint256)")]
     pub struct TransferFilter {
