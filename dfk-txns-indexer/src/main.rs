@@ -141,7 +141,7 @@ async fn index_txns_to_end_block(
         push_txns_to_mongo_service(format_logs(&transfers)).await?;
 
         start_block += BLOCKS_PER_REQ;
-        break;
+        break; // Remove when actually indexing
     }
     Ok(())
 }
