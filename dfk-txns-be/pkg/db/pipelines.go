@@ -4,7 +4,6 @@ import "go.mongodb.org/mongo-driver/bson"
 
 // I dislike aggregation pipelines very much
 
-// Generates match filters
 func genAddressMatch(address string) bson.D {
 	return bson.D{
 		{Key: "$match", Value: bson.D{
@@ -43,7 +42,7 @@ func genCountPipe() bson.D {
 }
 func genAppendTxnPipe(txns []Transaction) bson.D {
 	return bson.D{
-		{Key: "$push", Value: bson.D{
+		{Key: "$addToSet", Value: bson.D{
 			{Key: "txns", Value: bson.D{
 				{Key: "$each", Value: txns},
 			}},

@@ -14,9 +14,10 @@ const (
 
 // Used internally to keep track of db connection
 type DBConnection struct {
-	init bool
-	conn *mongo.Client
-	coll *mongo.Collection
+	init     bool
+	conn     *mongo.Client
+	txns     *mongo.Collection
+	accounts *mongo.Collection
 }
 
 // Used internally to pass paged items back to API
@@ -30,6 +31,12 @@ type PagedTxns struct {
 // Transaction wrapper
 type TxnWrapper struct {
 	Txns []Transaction `json:"txns" bson:"txns"`
+}
+
+// Tracks all addresses stored in db
+type AddressBook struct {
+	Id        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Addresses []string           `json:"addresses" bson:"addresses"`
 }
 
 // Account with transactions

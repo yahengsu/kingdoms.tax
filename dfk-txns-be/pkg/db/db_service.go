@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math"
 
@@ -27,9 +26,10 @@ func InitMongoClient(uri string) error {
 	}
 	// Set client struct
 	client = DBConnection{
-		init: true,
-		conn: new_conn,
-		coll: new_conn.Database("dfk-txns").Collection("txns"),
+		init:     true,
+		conn:     new_conn,
+		txns:     new_conn.Database("dfk-txns").Collection("txns"),
+		accounts: new_conn.Database("dfk-txns").Collection("accounts"),
 	}
 	return nil
 }
@@ -69,10 +69,22 @@ func GetAccountStats(address string, start, end int64) (int, int, error) {
 		([]Transaction, nil) if success
 		(nil, error) if fail
 */
-func GetAllTxns(address string) ([]byte, error) {
-	txns_res := []Transaction{}
-	fmt.Println(txns_res)
-	return nil, nil
+func GetAllTxns(address string) ([]Transaction, error) {
+	addressMatch := genAddressMatch(address)
+	unwindTxns := genUnwindPipe()
+	group := genGroupPipe()
+	pipe := mongo.Pipeline{addressMatch, unwindTxns, group}
+
+	cursor, err := performAggregation(pipe)
+	if err != nil {
+		return nil, err
+	}
+
+	var txn TxnWrapper
+	cursor.Next(context.TODO())
+	cursor.Decode(&txn)
+
+	return txn.Txns, nil
 }
 
 /*
@@ -87,7 +99,6 @@ func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error
 	unwindTxns := genUnwindPipe()
 	timeFilter := genTimeFilter(start, end)
 	group := genGroupPipe()
-
 	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, group}
 
 	cursor, err := performAggregation(pipe)
@@ -103,46 +114,24 @@ func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error
 }
 
 /*
-	Sorts new json string txns and appends to address
+	Appends to account with address
 	Returns: nil if success, error if fail
 */
-func AppendTxns(address string, txns []Transaction) error {
+func UpsertTxns(address string, txns []Transaction) error {
+	// Since upsert=true, if account doesn't exist,
+	// it will be created with received txns
 	update := genAppendTxnPipe(txns)
-	err := performUpdate(address, update)
+	res, err := performUpdate(address, update)
+
+	log.Printf("Num transactions upserted: %v", res.ModifiedCount)
+
 	return err
 }
 
-/*
-	Create document for new account
-	Returns: nil if success, error if fail
-*/
-func InsertNewAccount(address string) error {
-	new_acc := Account{
-		Address: address,
-		Txns:    []Transaction{},
-	}
-	res, err := performInsert([]interface{}{new_acc})
-	if err != nil {
-		return err
-	}
-	log.Printf("Inserted new account with id: %v", res.InsertedIDs...)
-
-	return nil
-}
-
-func performUpdate(address string, update bson.D) error {
-	res, err := client.coll.UpdateOne(context.TODO(), bson.D{{Key: "address", Value: address}}, update)
-	if err != nil {
-		return err
-	}
-	log.Printf("Inserted transactions for objectID: %v", res.ModifiedCount)
-
-	return nil
-}
-
-// Generic mongo insert function
-func performInsert(docs []interface{}) (*mongo.InsertManyResult, error) {
-	res, err := client.coll.InsertMany(context.TODO(), docs)
+func performUpdate(address string, update bson.D) (*mongo.UpdateResult, error) {
+	ops := options.Update().SetUpsert(true)
+	addressMatch := bson.D{{Key: "address", Value: address}}
+	res, err := client.txns.UpdateOne(context.TODO(), addressMatch, update, ops)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +140,7 @@ func performInsert(docs []interface{}) (*mongo.InsertManyResult, error) {
 
 // Generic aggregation function
 func performAggregation(pipe mongo.Pipeline) (*mongo.Cursor, error) {
-	cursor, err := client.coll.Aggregate(context.TODO(), pipe)
+	cursor, err := client.txns.Aggregate(context.TODO(), pipe)
 	if err != nil {
 		return nil, err
 	}
