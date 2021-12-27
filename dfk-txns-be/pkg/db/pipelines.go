@@ -49,3 +49,10 @@ func genAppendTxnPipe(txns []Transaction) bson.D {
 		}},
 	}
 }
+func genSortPipe() bson.D {
+	return bson.D{
+		{Key: "$sort", Value: bson.D{
+			{Key: "txns.timestamp", Value: 1},
+		}},
+	}
+}

@@ -73,7 +73,8 @@ func GetAllTxns(address string) ([]Transaction, error) {
 	addressMatch := genAddressMatch(address)
 	unwindTxns := genUnwindPipe()
 	group := genGroupPipe()
-	pipe := mongo.Pipeline{addressMatch, unwindTxns, group}
+	sort := genSortPipe()
+	pipe := mongo.Pipeline{addressMatch, unwindTxns, group, sort}
 
 	cursor, err := performAggregation(pipe)
 	if err != nil {
@@ -99,7 +100,8 @@ func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error
 	unwindTxns := genUnwindPipe()
 	timeFilter := genTimeFilter(start, end)
 	group := genGroupPipe()
-	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, group}
+	sort := genSortPipe()
+	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, group, sort}
 
 	cursor, err := performAggregation(pipe)
 	if err != nil {
@@ -130,7 +132,8 @@ func UpsertTxns(address string, txns []Transaction) error {
 
 func performUpdate(address string, update bson.D) (*mongo.UpdateResult, error) {
 	ops := options.Update().SetUpsert(true)
-	addressMatch := bson.D{{Key: "address", Value: address}}
+	//addressMatch := bson.D{{Key: "address", Value: address}}
+	addressMatch := genAddressMatch(address)
 	res, err := client.txns.UpdateOne(context.TODO(), addressMatch, update, ops)
 	if err != nil {
 		return nil, err
