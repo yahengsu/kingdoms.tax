@@ -30,7 +30,7 @@ struct ContractJson {
     other: HashMap<String, String>,
 }
 
-const BLOCKS_PER_REQ: u64 = 1000;
+const BLOCKS_PER_REQ: u64 = 1;
 
 #[derive(Serialize, Deserialize)]
 enum DfkTransfer {
@@ -56,8 +56,8 @@ struct DfkTransaction {
     account: H160,
     token_addr: H160,
     net_amount: U256,
-    block_number: U64,
-    timestamp: U256,
+    block_number: u64,
+    timestamp: u64,
     direction: Direction,
     token_type: TokenType,
     token_id: Option<U256>, // token_id for erc721 NFT transfers
@@ -171,16 +171,16 @@ async fn index_txns_to_end_block(
 async fn get_block_timestamps(
     selection: Range<u64>,
     provider: Arc<Provider<Http>>,
-) -> Result<HashMap<U64, U256>> {
+) -> Result<HashMap<U64, u64>> {
     // Grab block data for all blocks in range so we can add timestamps
     let blocks_futures = selection.map(|i| provider.get_block(i));
     let blocks_data = try_join_all(blocks_futures).await?;
-    let mut blocks_map = HashMap::<U64, U256>::new();
+    let mut blocks_map = HashMap::<U64, u64>::new();
     for maybe_block in blocks_data {
         let block = maybe_block.expect("Missing block!");
         blocks_map.insert(
             block.number.expect("Missing block number!"),
-            block.timestamp,
+            block.timestamp.as_u64(),
         );
     }
     return Ok(blocks_map);
@@ -194,13 +194,14 @@ async fn push_txns_to_mongo_service(logs: serde_json::Value) -> Result<()> {
 
 fn format_logs(
     logs: &Vec<(DfkTransfer, LogMeta)>,
-    block_ts_map: HashMap<U64, U256>,
+    block_ts_map: HashMap<U64, u64>,
 ) -> serde_json::Value {
     let mut transfers: Vec<DfkTransaction> = vec![];
     for (transfer, meta) in logs.iter() {
         let ts = *block_ts_map
             .get(&meta.block_number)
             .expect("Missing block number while formatting transfer");
+        let blockNum = meta.block_number.as_u64();
         match transfer {
             DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => {
                 transfers.push(DfkTransaction {
@@ -208,7 +209,7 @@ fn format_logs(
                     account: from.clone(),
                     token_addr: meta.address,
                     net_amount: value.clone(),
-                    block_number: meta.block_number,
+                    block_number: blockNum,
                     timestamp: ts,
                     direction: Direction::OUT,
                     token_type: TokenType::ERC20,
@@ -219,7 +220,7 @@ fn format_logs(
                     account: to.clone(),
                     token_addr: meta.address,
                     net_amount: value.clone(),
-                    block_number: meta.block_number,
+                    block_number: blockNum,
                     timestamp: ts,
                     direction: Direction::IN,
                     token_type: TokenType::ERC20,
@@ -232,7 +233,7 @@ fn format_logs(
                     account: from.clone(),
                     token_addr: meta.address,
                     net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: meta.block_number,
+                    block_number: blockNum,
                     timestamp: ts,
                     direction: Direction::OUT,
                     token_type: TokenType::ERC721,
@@ -243,7 +244,7 @@ fn format_logs(
                     account: to.clone(),
                     token_addr: meta.address,
                     net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: meta.block_number,
+                    block_number: blockNum,
                     timestamp: ts,
                     direction: Direction::IN,
                     token_type: TokenType::ERC721,
