@@ -48,18 +48,12 @@ type Account struct {
 
 // Single transaction
 type Transaction struct {
-	BlockHash string `json:"blockHash" bson:"blockHash"`
-	BlockNum  uint64 `json:"blockNumber" bson:"blockNumber"`
-	From      string `json:"from" bson:"from"`
-	Timestamp uint64 `json:"timestamp" bson:"timestamp"`
-	Gas       uint64 `json:"gas" bson:"gas"`
-	GasPrice  uint64 `json:"gasPrice" bson:"gasPrice"`
-	Hash      string `json:"hash" bson:"hash"`
-	Input     string `json:"input" bson:"input"`
-	Nonce     uint64 `json:"nonce" bson:"nonce"`
-	To        string `json:"to" bson:"to"`
-	TxnIndex  uint   `json:"transactionIndex" bson:"transactionIndex"`
-	Value     uint64 `json:"value" bson:"value"`
-	ShardID   uint   `json:"shardID" bson:"shardID"`
-	ToShardID uint   `json:"toShardID" bson:"toShardID"`
+	BlockNum  int    `json:"block_number" bson:"block_number"`
+	Direction string `json:"direction" bson:"direction"`
+	NetAmount string `json:"net_amount" bson:"net_amount"`
+	Timestamp int    `json:"timestamp" bson:"timestamp"`
+	TokenAddr string `json:"token_addr" bson:"token_addr"`
+	TokenID   string `json:"token_id" bson:"token_id"`
+	TokenType string `json:"token_type" bson:"token_type"`
+	TxnHash   string `json:"txn_hash" bson:"txn_hash"`
 }
