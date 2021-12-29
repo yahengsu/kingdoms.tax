@@ -20,16 +20,16 @@ var client DBConnection
 	Returns: nil if success; error if fail
 */
 func InitMongoClient(uri string) error {
-	new_conn, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	newConn, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		return err
 	}
 	// Set client struct
 	client = DBConnection{
 		init:     true,
-		conn:     new_conn,
-		txns:     new_conn.Database("dfk-txns").Collection("txns"),
-		accounts: new_conn.Database("dfk-txns").Collection("accounts"),
+		conn:     newConn,
+		txns:     newConn.Database("dfk-txns").Collection("txns"),
+		accounts: newConn.Database("dfk-txns").Collection("accounts"),
 	}
 	return nil
 }
@@ -41,26 +41,26 @@ func InitMongoClient(uri string) error {
 		(0, 0) if fail
 */
 func GetAccountStats(address string, start, end int64) (int, int, error) {
-	addressMatch := genAddressMatch(address)
-	unwindTxns := genUnwindPipe()
-	timeFilter := genTimeFilter(start, end)
-	count := genCountPipe()
-
-	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, count}
+	pipe := mongo.Pipeline{
+		addressMatch(address),
+		unwindTxns(),
+		filterTimestamps(start, end),
+		countTxns(),
+	}
 	cursor, err := performAggregation(pipe)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	cursor.Next(context.TODO())
-	txn_count := struct {
+	txnCount := struct {
 		Count float64 `json:"txn_count" bson:"txn_count"`
 	}{}
-	cursor.Decode(&txn_count)
+	cursor.Decode(&txnCount)
 
-	num_pages := int(math.Ceil(txn_count.Count / PAGE_SIZE))
+	pageCount := int(math.Ceil(txnCount.Count / PAGE_SIZE))
 
-	return int(txn_count.Count), num_pages, nil
+	return int(txnCount.Count), pageCount, nil
 }
 
 /*
@@ -69,22 +69,31 @@ func GetAccountStats(address string, start, end int64) (int, int, error) {
 		([]Transaction, nil) if success
 		(nil, error) if fail
 */
-func GetAllTxns(address string) ([]Transaction, error) {
-	addressMatch := genAddressMatch(address)
-	unwindTxns := genUnwindPipe()
-	group := genGroupPipe()
-	pipe := mongo.Pipeline{addressMatch, unwindTxns, group}
+func GetAllTxns(address string, page int) (PagedTxn, error) {
+	// Transaction paging
+	skipOffset := page * PAGE_SIZE
 
-	cursor, err := performAggregation(pipe)
-	if err != nil {
-		return nil, err
+	// Create aggregation pipeline
+	pipe := mongo.Pipeline{
+		addressMatch(address),
+		unwindTxns(),
+		sortByTimestamp(),
+		skipTxns(skipOffset),
+		limitTxns(PAGE_SIZE),
+		groupTxns(),
 	}
 
-	var txn TxnWrapper
-	cursor.Next(context.TODO())
-	cursor.Decode(&txn)
+	var txnPage PagedTxn
+	cursor, err := performAggregation(pipe)
+	if err != nil {
+		return txnPage, err
+	}
 
-	return txn.Txns, nil
+	cursor.Next(context.TODO())
+	cursor.Decode(&txnPage)
+	txnPage.Page = page
+
+	return txnPage, nil
 }
 
 /*
@@ -93,24 +102,31 @@ func GetAllTxns(address string) ([]Transaction, error) {
 		([]byte, nil) if success
 		(nil, error) if fail
 */
-func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error) {
-	// Aggregation pipes
-	addressMatch := genAddressMatch(address)
-	unwindTxns := genUnwindPipe()
-	timeFilter := genTimeFilter(start, end)
-	group := genGroupPipe()
-	pipe := mongo.Pipeline{addressMatch, unwindTxns, timeFilter, group}
+func GetTxnsBetweenTimes(address string, start, end int64, page int) (PagedTxn, error) {
+	// Transaction paging
+	skipOffset := page * PAGE_SIZE
 
-	cursor, err := performAggregation(pipe)
-	if err != nil {
-		return nil, err
+	pipe := mongo.Pipeline{
+		addressMatch(address),
+		unwindTxns(),
+		filterTimestamps(start, end),
+		sortByTimestamp(),
+		skipTxns(skipOffset),
+		limitTxns(PAGE_SIZE),
+		groupTxns(),
 	}
 
-	var txn TxnWrapper
-	cursor.Next(context.TODO())
-	cursor.Decode(&txn)
+	var txnPage PagedTxn
+	cursor, err := performAggregation(pipe)
+	if err != nil {
+		return txnPage, err
+	}
 
-	return txn.Txns, nil
+	cursor.Next(context.TODO())
+	cursor.Decode(&txnPage)
+	txnPage.Page = page
+
+	return txnPage, nil
 }
 
 /*
@@ -120,7 +136,7 @@ func GetTxnsBetweenTimes(address string, start, end int64) ([]Transaction, error
 func UpsertTxns(address string, txns []Transaction) error {
 	// Since upsert=true, if account doesn't exist,
 	// it will be created with received txns
-	update := genAppendTxnPipe(txns)
+	update := appendTxns(txns)
 	res, err := performUpdate(address, update)
 
 	log.Printf("Num transactions upserted: %v", res.ModifiedCount)
@@ -130,7 +146,8 @@ func UpsertTxns(address string, txns []Transaction) error {
 
 func performUpdate(address string, update bson.D) (*mongo.UpdateResult, error) {
 	ops := options.Update().SetUpsert(true)
-	addressMatch := bson.D{{Key: "address", Value: address}}
+	//addressMatch := bson.D{{Key: "address", Value: address}}
+	addressMatch := addressMatch(address)
 	res, err := client.txns.UpdateOne(context.TODO(), addressMatch, update, ops)
 	if err != nil {
 		return nil, err

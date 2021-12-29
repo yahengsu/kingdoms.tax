@@ -4,14 +4,21 @@ import "go.mongodb.org/mongo-driver/bson"
 
 // I dislike aggregation pipelines very much
 
-func genAddressMatch(address string) bson.D {
+func addressMatch(address string) bson.D {
 	return bson.D{
 		{Key: "$match", Value: bson.D{
 			{Key: "address", Value: address},
 		}},
 	}
 }
-func genTimeFilter(start, end int64) bson.D {
+
+func unwindTxns() bson.D {
+	return bson.D{
+		{Key: "$unwind", Value: "$txns"},
+	}
+}
+
+func filterTimestamps(start, end int64) bson.D {
 	return bson.D{
 		{Key: "$match", Value: bson.D{
 			{Key: "txns.timestamp", Value: bson.D{
@@ -21,7 +28,16 @@ func genTimeFilter(start, end int64) bson.D {
 		}},
 	}
 }
-func genGroupPipe() bson.D {
+
+func sortByTimestamp() bson.D {
+	return bson.D{
+		{Key: "$sort", Value: bson.D{
+			{Key: "txns.timestamp", Value: 1},
+		}},
+	}
+}
+
+func groupTxns() bson.D {
 	return bson.D{
 		{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "txn_res"}, {Key: "txns", Value: bson.D{
@@ -30,22 +46,31 @@ func genGroupPipe() bson.D {
 		}},
 	}
 }
-func genUnwindPipe() bson.D {
-	return bson.D{
-		{Key: "$unwind", Value: "$txns"},
-	}
-}
-func genCountPipe() bson.D {
+
+func countTxns() bson.D {
 	return bson.D{
 		{Key: "$count", Value: "txn_count"},
 	}
 }
-func genAppendTxnPipe(txns []Transaction) bson.D {
+
+func appendTxns(txns []Transaction) bson.D {
 	return bson.D{
 		{Key: "$addToSet", Value: bson.D{
 			{Key: "txns", Value: bson.D{
 				{Key: "$each", Value: txns},
 			}},
 		}},
+	}
+}
+
+func skipTxns(skip int) bson.D {
+	return bson.D{
+		{Key: "$skip", Value: skip},
+	}
+}
+
+func limitTxns(limit int) bson.D {
+	return bson.D{
+		{Key: "$limit", Value: limit},
 	}
 }
