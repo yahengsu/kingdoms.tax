@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	PAGE_SIZE = 10
+	PAGE_SIZE = 5
 )
 
 // Used internally to keep track of db connection
