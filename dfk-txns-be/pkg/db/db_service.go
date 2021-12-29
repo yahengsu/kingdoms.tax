@@ -69,7 +69,7 @@ func GetAccountStats(address string, start, end int64) (int, int, error) {
 		([]Transaction, nil) if success
 		(nil, error) if fail
 */
-func GetAllTxns(address string, page int) ([]Transaction, error) {
+func GetAllTxns(address string, page int) (PagedTxn, error) {
 	// Transaction paging
 	skipOffset := page * PAGE_SIZE
 
@@ -83,16 +83,17 @@ func GetAllTxns(address string, page int) ([]Transaction, error) {
 		groupTxns(),
 	}
 
+	var txnPage PagedTxn
 	cursor, err := performAggregation(pipe)
 	if err != nil {
-		return nil, err
+		return txnPage, err
 	}
 
-	var txn TxnWrapper
 	cursor.Next(context.TODO())
-	cursor.Decode(&txn)
+	cursor.Decode(&txnPage)
+	txnPage.Page = page
 
-	return txn.Txns, nil
+	return txnPage, nil
 }
 
 /*
@@ -101,7 +102,7 @@ func GetAllTxns(address string, page int) ([]Transaction, error) {
 		([]byte, nil) if success
 		(nil, error) if fail
 */
-func GetTxnsBetweenTimes(address string, start, end int64, page int) ([]Transaction, error) {
+func GetTxnsBetweenTimes(address string, start, end int64, page int) (PagedTxn, error) {
 	// Transaction paging
 	skipOffset := page * PAGE_SIZE
 
@@ -115,16 +116,17 @@ func GetTxnsBetweenTimes(address string, start, end int64, page int) ([]Transact
 		groupTxns(),
 	}
 
+	var txnPage PagedTxn
 	cursor, err := performAggregation(pipe)
 	if err != nil {
-		return nil, err
+		return txnPage, err
 	}
 
-	var txn TxnWrapper
 	cursor.Next(context.TODO())
-	cursor.Decode(&txn)
+	cursor.Decode(&txnPage)
+	txnPage.Page = page
 
-	return txn.Txns, nil
+	return txnPage, nil
 }
 
 /*

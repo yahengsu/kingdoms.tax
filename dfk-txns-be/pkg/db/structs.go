@@ -21,16 +21,9 @@ type DBConnection struct {
 }
 
 // Used internally to pass paged items back to API
-type PagedTxns struct {
-	Txns       []Transaction
-	Total      int64 // Total number of transactions returned
-	TotalPages int   // Total number of pages
-	Page       int   // Current page of transactions
-}
-
-// Transaction wrapper
-type TxnWrapper struct {
+type PagedTxn struct {
 	Txns []Transaction `json:"txns" bson:"txns"`
+	Page int           // Current page of transactions
 }
 
 // Tracks all addresses stored in db
