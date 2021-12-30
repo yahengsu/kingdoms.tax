@@ -1,4 +1,4 @@
-// db/db_service.go
+// db/service.go
 // Service Handles all communication with mongodb database
 
 package db
@@ -6,19 +6,24 @@ package db
 import (
 	"context"
 	"log"
-	"math"
 
+	"dfk-txns-be/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type DBConnection struct {
+	init     bool
+	conn     *mongo.Client
+	txns     *mongo.Collection
+	accounts *mongo.Collection
+}
+
 var client DBConnection
 
-/*
-	Creates MongoClient object.
-	Returns: nil if success; error if fail
-*/
+// InitMongoClient initializes the global Mongo client and
+// returns an error if encountered.
 func InitMongoClient(uri string) error {
 	newConn, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
@@ -34,13 +39,10 @@ func InitMongoClient(uri string) error {
 	return nil
 }
 
-/*
-	For specified account and dates, get num of transactions and num pages.
-	Returns:
-		(txn_count, page_count) if success
-		(0, 0) if fail
-*/
-func GetAccountStats(address string, start, end int64) (int, int, error) {
+// GetTransactionCount returns the number of transactions a
+// given account made between the given start and end timestamps
+// or an error if encountered.
+func GetTransactionCount(address string, start, end int64) (int, error) {
 	pipe := mongo.Pipeline{
 		addressMatch(address),
 		unwindTxns(),
@@ -49,29 +51,26 @@ func GetAccountStats(address string, start, end int64) (int, int, error) {
 	}
 	cursor, err := performAggregation(pipe)
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	cursor.Next(context.TODO())
 	txnCount := struct {
 		Count float64 `json:"txn_count" bson:"txn_count"`
 	}{}
-	cursor.Decode(&txnCount)
+	err = cursor.Decode(&txnCount)
+	if err != nil {
+		return 0, err
+	}
 
-	pageCount := int(math.Ceil(txnCount.Count / PAGE_SIZE))
-
-	return int(txnCount.Count), pageCount, nil
+	return int(txnCount.Count), nil
 }
 
-/*
-	Get all transactions for specific account; sorted old to new
-	Returns:
-		([]Transaction, nil) if success
-		(nil, error) if fail
-*/
-func GetAllTxns(address string, page int) (PagedTxn, error) {
+// GetTransactions returns a list of transactions for the given address
+// starting at the given page and pageSize or an error if encountered.
+func GetTransactions(address string, page, pageSize int) ([]models.Transaction, error) {
 	// Transaction paging
-	skipOffset := page * PAGE_SIZE
+	skipOffset := page * pageSize
 
 	// Create aggregation pipeline
 	pipe := mongo.Pipeline{
@@ -79,32 +78,31 @@ func GetAllTxns(address string, page int) (PagedTxn, error) {
 		unwindTxns(),
 		sortByTimestamp(),
 		skipTxns(skipOffset),
-		limitTxns(PAGE_SIZE),
+		limitTxns(pageSize),
 		groupTxns(),
 	}
 
-	var txnPage PagedTxn
+	var txnPage []models.Transaction
 	cursor, err := performAggregation(pipe)
 	if err != nil {
 		return txnPage, err
 	}
 
 	cursor.Next(context.TODO())
-	cursor.Decode(&txnPage)
-	txnPage.Page = page
+	err = cursor.Decode(&txnPage)
+	if err != nil {
+		return txnPage, err
+	}
 
 	return txnPage, nil
 }
 
-/*
-	Get transactions between time start and end; sorted old to new.
-	Returns:
-		([]byte, nil) if success
-		(nil, error) if fail
-*/
-func GetTxnsBetweenTimes(address string, start, end int64, page int) (PagedTxn, error) {
+// GetTransactionsInTimeRange returns a list of transactions for the given
+// address between the given start and end timestamps or an error if encountered.
+// The transactions are paginated based on page and pageSize.
+func GetTransactionsInTimeRange(address string, start, end int64, page, pageSize int) ([]models.Transaction, error) {
 	// Transaction paging
-	skipOffset := page * PAGE_SIZE
+	skipOffset := page * pageSize
 
 	pipe := mongo.Pipeline{
 		addressMatch(address),
@@ -112,28 +110,28 @@ func GetTxnsBetweenTimes(address string, start, end int64, page int) (PagedTxn, 
 		filterTimestamps(start, end),
 		sortByTimestamp(),
 		skipTxns(skipOffset),
-		limitTxns(PAGE_SIZE),
+		limitTxns(pageSize),
 		groupTxns(),
 	}
 
-	var txnPage PagedTxn
+	var txnPage []models.Transaction
 	cursor, err := performAggregation(pipe)
 	if err != nil {
 		return txnPage, err
 	}
 
 	cursor.Next(context.TODO())
-	cursor.Decode(&txnPage)
-	txnPage.Page = page
+	err = cursor.Decode(&txnPage)
+	if err != nil {
+		return txnPage, err
+	}
 
 	return txnPage, nil
 }
 
-/*
-	Appends to account with address
-	Returns: nil if success, error if fail
-*/
-func UpsertTxns(address string, txns []Transaction) error {
+// UpsertTransactions appends the provided transactions to the record
+// for the given account or creates the record if it does not exist.
+func UpsertTransactions(address string, txns []models.Transaction) error {
 	// Since upsert=true, if account doesn't exist,
 	// it will be created with received txns
 	update := appendTxns(txns)
