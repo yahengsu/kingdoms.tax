@@ -159,8 +159,12 @@ async fn index_txns_to_end_block(
                 .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
         );
 
-        push_txns_to_mongo_service(format_logs(&transfers, block_ts_map)).await?;
-        println!("Finished pushing txns to mongo service for block range:{:?} {:?}", start_block, start_block + BLOCKS_PER_REQ);
+        push_txns_to_mongo_service(&transfers, block_ts_map).await?;
+        println!(
+            "Finished pushing txns to mongo service for block range:{:?} {:?}",
+            start_block,
+            start_block + BLOCKS_PER_REQ
+        );
 
         start_block += BLOCKS_PER_REQ;
         break; // Remove when actually indexing
@@ -186,13 +190,21 @@ async fn get_block_timestamps(
     return Ok(blocks_map);
 }
 
-async fn push_txns_to_mongo_service(logs: serde_json::Value) -> Result<()> {
-    //TODO: Push valid transactions to Rick's mongo service once it's ready
-    println!("{}", logs);
+async fn push_txns_to_mongo_service(
+    logs: &Vec<(DfkTransfer, LogMeta)>,
+    block_ts_map: HashMap<U64, u64>,
+) -> Result<()> {
+    let api_url = env::var("INDEXER_API_URL")?;
+    let logs_json = marshall_logs_to_json(logs, block_ts_map);
+    let response = reqwest::Client::new()
+        .post(&api_url)
+        .json(&logs_json)
+        .send()
+        .await?;
     Ok(())
 }
 
-fn format_logs(
+fn marshall_logs_to_json(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> serde_json::Value {
@@ -201,7 +213,7 @@ fn format_logs(
         let ts = *block_ts_map
             .get(&meta.block_number)
             .expect("Missing block number while formatting transfer");
-        let blockNum = meta.block_number.as_u64();
+        let block_num = meta.block_number.as_u64();
         match transfer {
             DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => {
                 transfers.push(DfkTransaction {
@@ -209,7 +221,7 @@ fn format_logs(
                     account: from.clone(),
                     token_addr: meta.address,
                     net_amount: value.clone(),
-                    block_number: blockNum,
+                    block_number: block_num,
                     timestamp: ts,
                     direction: Direction::OUT,
                     token_type: TokenType::ERC20,
@@ -220,7 +232,7 @@ fn format_logs(
                     account: to.clone(),
                     token_addr: meta.address,
                     net_amount: value.clone(),
-                    block_number: blockNum,
+                    block_number: block_num,
                     timestamp: ts,
                     direction: Direction::IN,
                     token_type: TokenType::ERC20,
@@ -233,7 +245,7 @@ fn format_logs(
                     account: from.clone(),
                     token_addr: meta.address,
                     net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: blockNum,
+                    block_number: block_num,
                     timestamp: ts,
                     direction: Direction::OUT,
                     token_type: TokenType::ERC721,
@@ -244,7 +256,7 @@ fn format_logs(
                     account: to.clone(),
                     token_addr: meta.address,
                     net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: blockNum,
+                    block_number: block_num,
                     timestamp: ts,
                     direction: Direction::IN,
                     token_type: TokenType::ERC721,
