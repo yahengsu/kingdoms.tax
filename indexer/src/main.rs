@@ -208,7 +208,7 @@ fn marshall_logs_to_json(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> serde_json::Value {
-    let mut transfers: Vec<DfkTransaction> = vec![];
+    let mut transfer_map = HashMap::new();
     for (transfer, meta) in logs.iter() {
         let ts = *block_ts_map
             .get(&meta.block_number)
@@ -216,52 +216,64 @@ fn marshall_logs_to_json(
         let block_num = meta.block_number.as_u64();
         match transfer {
             DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => {
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: from.clone(),
-                    token_addr: meta.address,
-                    net_amount: value.clone(),
-                    block_number: block_num,
-                    timestamp: ts,
-                    direction: Direction::OUT,
-                    token_type: TokenType::ERC20,
-                    token_id: None,
-                });
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: to.clone(),
-                    token_addr: meta.address,
-                    net_amount: value.clone(),
-                    block_number: block_num,
-                    timestamp: ts,
-                    direction: Direction::IN,
-                    token_type: TokenType::ERC20,
-                    token_id: None,
-                });
+                transfer_map.insert(
+                    from.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: from.clone(),
+                        token_addr: meta.address,
+                        net_amount: value.clone(),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::OUT,
+                        token_type: TokenType::ERC20,
+                        token_id: None,
+                    },
+                );
+                transfer_map.insert(
+                    to.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: to.clone(),
+                        token_addr: meta.address,
+                        net_amount: value.clone(),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::IN,
+                        token_type: TokenType::ERC20,
+                        token_id: None,
+                    },
+                );
             }
             DfkTransfer::Erc721(Erc721::TransferFilter { from, to, token_id }) => {
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: from.clone(),
-                    token_addr: meta.address,
-                    net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: block_num,
-                    timestamp: ts,
-                    direction: Direction::OUT,
-                    token_type: TokenType::ERC721,
-                    token_id: Some(token_id.clone()),
-                });
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: to.clone(),
-                    token_addr: meta.address,
-                    net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: block_num,
-                    timestamp: ts,
-                    direction: Direction::IN,
-                    token_type: TokenType::ERC721,
-                    token_id: Some(token_id.clone()),
-                });
+                transfer_map.insert(
+                    from.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: from.clone(),
+                        token_addr: meta.address,
+                        net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::OUT,
+                        token_type: TokenType::ERC721,
+                        token_id: Some(token_id.clone()),
+                    },
+                );
+                transfer_map.insert(
+                    to.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: to.clone(),
+                        token_addr: meta.address,
+                        net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::IN,
+                        token_type: TokenType::ERC721,
+                        token_id: Some(token_id.clone()),
+                    },
+                );
             }
         }
     }
