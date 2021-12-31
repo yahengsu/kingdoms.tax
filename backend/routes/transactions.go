@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
+	"dfk-txns-be/db"
 	"dfk-txns-be/models"
 )
 
@@ -17,17 +19,66 @@ type GetTransactionsResponse struct {
 }
 
 func GetTransactions(w http.ResponseWriter, r *http.Request) {
-	log.Println("Endpoint Hit: GetTransactions")
 	query := r.URL.Query()
 	startTime := query.Get("startTime")
 	endTime := query.Get("endTime")
 	address := query.Get("address")
+
+	page, err := strconv.Atoi(query.Get("page"))
+	if err != nil || page < 0 {
+		log.Println("invalid page in request, defaulting to 0")
+		page = 0
+	}
+
+	count, err := strconv.Atoi(query.Get("count"))
+	if err != nil || count <= 0 {
+		log.Println("invalid count in request, defaulting to 25")
+		count = 25
+	}
+
+	response := GetTransactionsResponse{}
+	response.Total, err = db.GetTotalTransactionCount(address)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error getting total transaction count: %v", err), http.StatusInternalServerError)
+		return
+	}
+	response.HasMore = response.Total > (page+1)*count
+
 	selectAll := startTime == "" && endTime == ""
 	fmt.Println(address, startTime, endTime)
+
+	var txns []models.Transaction
 	if selectAll {
-		fmt.Println("Get all txns")
+		txns, err = db.GetAllTransactions(address, page, count)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("error getting transactions: %v", err), http.StatusInternalServerError)
+			return
+		}
 	} else {
-		fmt.Println("Get txns within date")
+		startTimeInt, err := strconv.ParseInt(startTime, 10, 64)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("invalid startTime in request: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		endTimeInt, err := strconv.ParseInt(endTime, 10, 64)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("invalid endTime in request: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		txns, err = db.GetTransactionsInTimeRange(address, startTimeInt, endTimeInt, page, count)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("error getting transactions: %v", err), http.StatusInternalServerError)
+			return
+		}
 	}
-	json.NewEncoder(w).Encode(GetTransactionsResponse{})
+
+	response.Transactions = txns
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }

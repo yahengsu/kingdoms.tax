@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"os"
 
 	"dfk-txns-be/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +25,10 @@ var client DBConnection
 // InitMongoClient initializes the global Mongo client and
 // returns an error if encountered.
 func InitMongoClient(uri string) error {
-	newConn, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	newConn, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri).SetAuth(options.Credential{
+		Username: os.Getenv("MONGODB_USER"),
+		Password: os.Getenv("MONGODB_PASSWORD"),
+	}))
 	if err != nil {
 		return err
 	}
@@ -38,10 +42,35 @@ func InitMongoClient(uri string) error {
 	return nil
 }
 
-// GetTransactionCount returns the number of transactions a
+// GetTotalTransactionCount returns the total number of transactions
+// a given account has made or an error if encountered.
+func GetTotalTransactionCount(address string) (int, error) {
+	pipe := mongo.Pipeline{
+		addressMatch(address),
+		unwindTxns(),
+		countTxns(),
+	}
+	cursor, err := performAggregation(pipe)
+	if err != nil {
+		return 0, err
+	}
+
+	cursor.Next(context.TODO())
+	txnCount := struct {
+		Count float64 `json:"txn_count" bson:"txn_count"`
+	}{}
+	err = cursor.Decode(&txnCount)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(txnCount.Count), nil
+}
+
+// GetTransactionCountInRange returns the number of transactions a
 // given account made between the given start and end timestamps
 // or an error if encountered.
-func GetTransactionCount(address string, start, end int64) (int, error) {
+func GetTransactionCountInRange(address string, start, end int64) (int, error) {
 	pipe := mongo.Pipeline{
 		addressMatch(address),
 		unwindTxns(),
@@ -65,9 +94,9 @@ func GetTransactionCount(address string, start, end int64) (int, error) {
 	return int(txnCount.Count), nil
 }
 
-// GetTransactions returns a list of transactions for the given address
+// GetAllTransactions returns a list of transactions for the given address
 // starting at the given page and pageSize or an error if encountered.
-func GetTransactions(address string, page, pageSize int) ([]models.Transaction, error) {
+func GetAllTransactions(address string, page, pageSize int) ([]models.Transaction, error) {
 	// Transaction paging
 	skipOffset := page * pageSize
 
@@ -81,19 +110,21 @@ func GetTransactions(address string, page, pageSize int) ([]models.Transaction, 
 		groupTxns(),
 	}
 
-	var txnPage []models.Transaction
+	txnPage := struct {
+		Transactions []models.Transaction `json:"txns" bson:"txns"`
+	}{}
 	cursor, err := performAggregation(pipe)
 	if err != nil {
-		return txnPage, err
+		return []models.Transaction{}, err
 	}
 
 	cursor.Next(context.TODO())
 	err = cursor.Decode(&txnPage)
 	if err != nil {
-		return txnPage, err
+		return []models.Transaction{}, err
 	}
 
-	return txnPage, nil
+	return txnPage.Transactions, nil
 }
 
 // GetTransactionsInTimeRange returns a list of transactions for the given
@@ -113,19 +144,21 @@ func GetTransactionsInTimeRange(address string, start, end int64, page, pageSize
 		groupTxns(),
 	}
 
-	var txnPage []models.Transaction
+	txnPage := struct {
+		Transactions []models.Transaction `json:"txns" bson:"txns"`
+	}{}
 	cursor, err := performAggregation(pipe)
 	if err != nil {
-		return txnPage, err
+		return []models.Transaction{}, err
 	}
 
 	cursor.Next(context.TODO())
 	err = cursor.Decode(&txnPage)
 	if err != nil {
-		return txnPage, err
+		return []models.Transaction{}, err
 	}
 
-	return txnPage, nil
+	return txnPage.Transactions, nil
 }
 
 // UpsertTransactions appends the provided transactions to the record
