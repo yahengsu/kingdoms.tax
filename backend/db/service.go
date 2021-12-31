@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"log"
 
 	"dfk-txns-be/models"
 	"go.mongodb.org/mongo-driver/bson"
@@ -135,10 +134,7 @@ func UpsertTransactions(address string, txns []models.Transaction) error {
 	// Since upsert=true, if account doesn't exist,
 	// it will be created with received txns
 	update := appendTxns(txns)
-	res, err := performUpdate(address, update)
-
-	log.Printf("Num transactions upserted: %v", res.ModifiedCount)
-
+	_, err := performUpdate(address, update)
 	return err
 }
 
