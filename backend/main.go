@@ -20,7 +20,7 @@ func main() {
 	// Set up router
 	r := mux.NewRouter()
 	r.HandleFunc("/transactions", routes.GetTransactions).Methods("GET")
-	r.HandleFunc("/transactions", routes.AddTransactions).Methods("POST")
+	r.HandleFunc("/transactions", authenticateRoute(routes.AddTransactions)).Methods("POST")
 
 	// Run server
 	port := os.Getenv("PORT")
