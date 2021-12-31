@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"dfk-txns-be/models"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -173,8 +174,7 @@ func UpsertTransactions(address string, txns []models.Transaction) error {
 
 func performUpdate(address string, update bson.D) (*mongo.UpdateResult, error) {
 	ops := options.Update().SetUpsert(true)
-	//addressMatch := bson.D{{Key: "address", Value: address}}
-	addressMatch := addressMatch(address)
+	addressMatch := bson.M{"address": address}
 	res, err := client.txns.UpdateOne(context.TODO(), addressMatch, update, ops)
 	if err != nil {
 		return nil, err
