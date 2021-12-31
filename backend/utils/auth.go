@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ func validateToken(token string) bool {
 	return err == nil && accessToken.Valid
 }
 
-func authenticateRoute(next func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+func AuthenticateRoute(next func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read the token from the request header
 		tokens, ok := r.Header["Authorization"]
