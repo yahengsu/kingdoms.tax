@@ -245,6 +245,7 @@ fn marshall_logs_to_json(
                     },
                 );
             }
+
             DfkTransfer::Erc721(Erc721::TransferFilter { from, to, token_id }) => {
                 transfer_map.insert(
                     from.clone(),
@@ -278,5 +279,5 @@ fn marshall_logs_to_json(
         }
     }
 
-    serde_json::to_value(&transfers).unwrap()
+    serde_json::to_value(&transfer_map).unwrap()
 }

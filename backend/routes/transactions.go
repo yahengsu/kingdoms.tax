@@ -9,11 +9,11 @@ import (
 	"dfk-txns-be/models"
 )
 
-// TransactionResponse represents a paginated response to a query for some subset of a user's transactions.
-type TransactionResponse struct {
+// GetTransactionsResponse represents a paginated response to a query for some subset of a user's transactions.
+type GetTransactionsResponse struct {
 	Transactions []models.Transaction `json:"transactions"`
-	CurrentPage  int                  `json:"currentPage"`
-	TotalPages   int                  `json:"totalPages"`
+	Total        int                  `json:"total"`
+	HasMore      bool                 `json:"has_more"`
 }
 
 func GetTransactions(w http.ResponseWriter, r *http.Request) {
@@ -29,5 +29,5 @@ func GetTransactions(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Println("Get txns within date")
 	}
-	json.NewEncoder(w).Encode(TransactionResponse{})
+	json.NewEncoder(w).Encode(GetTransactionsResponse{})
 }
