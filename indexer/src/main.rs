@@ -5,6 +5,7 @@ use ethers::types::ValueOrArray;
 use ethers::{core::abi::Abi, types::H160};
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Entry;
 use std::env;
 use std::fs;
 use std::ops::Range;
@@ -216,7 +217,8 @@ fn marshall_logs_to_json(
         let block_num = meta.block_number.as_u64();
         match transfer {
             DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => {
-                transfer_map.insert(
+                insert_transaction_to_map(
+                    &mut transfer_map,
                     from.clone(),
                     DfkTransaction {
                         txn_hash: meta.transaction_hash,
@@ -230,7 +232,8 @@ fn marshall_logs_to_json(
                         token_id: None,
                     },
                 );
-                transfer_map.insert(
+                insert_transaction_to_map(
+                    &mut transfer_map,
                     to.clone(),
                     DfkTransaction {
                         txn_hash: meta.transaction_hash,
@@ -247,7 +250,8 @@ fn marshall_logs_to_json(
             }
 
             DfkTransfer::Erc721(Erc721::TransferFilter { from, to, token_id }) => {
-                transfer_map.insert(
+                insert_transaction_to_map(
+                    &mut transfer_map,
                     from.clone(),
                     DfkTransaction {
                         txn_hash: meta.transaction_hash,
@@ -261,7 +265,8 @@ fn marshall_logs_to_json(
                         token_id: Some(token_id.clone()),
                     },
                 );
-                transfer_map.insert(
+                insert_transaction_to_map(
+                    &mut transfer_map,
                     to.clone(),
                     DfkTransaction {
                         txn_hash: meta.transaction_hash,
@@ -280,4 +285,19 @@ fn marshall_logs_to_json(
     }
 
     serde_json::to_value(&transfer_map).unwrap()
+}
+
+fn insert_transaction_to_map(
+    map: &mut HashMap<H160, Vec<DfkTransaction>>,
+    key: H160,
+    txn: DfkTransaction,
+) {
+    match map.entry(key) {
+        Entry::Vacant(e) => {
+            e.insert(vec![txn]);
+        }
+        Entry::Occupied(mut e) => {
+            e.get_mut().push(txn);
+        }
+    }
 }
