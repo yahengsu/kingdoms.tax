@@ -9,9 +9,18 @@ import (
 	"dfk-txns-be/routes"
 	"dfk-txns-be/utils"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file if local
+	if os.Getenv("ENV") != "prod" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	}
+
 	// Set up MongoDB
 	err := db.InitMongoClient(os.Getenv("MONGODB_URL"))
 	if err != nil {
