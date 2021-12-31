@@ -1,9 +1,11 @@
 use anyhow::Result;
+use chrono::{Duration, Utc};
 use ethers::prelude::{LogMeta, Middleware, TxHash, U256, U64};
 use ethers::providers::{Http, Provider};
 use ethers::types::ValueOrArray;
 use ethers::{core::abi::Abi, types::H160};
 use futures::future::try_join_all;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
 use std::env;
@@ -29,6 +31,12 @@ struct ContractJson {
     erc20: HashMap<String, String>,
     erc721: HashMap<String, String>,
     other: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct JWTClaims {
+    sub: String,
+    exp: u64,
 }
 
 const BLOCKS_PER_REQ: u64 = 1;
@@ -195,10 +203,13 @@ async fn push_txns_to_mongo_service(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> Result<()> {
-    let api_url = env::var("INDEXER_API_URL")?;
+    let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
     let logs_json = marshall_logs_to_json(logs, block_ts_map);
-    let response = reqwest::Client::new()
+    let access_token = generate_access_token()?;
+    let _response = reqwest::Client::new()
         .post(&api_url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", "Bearer ".to_owned() + &access_token)
         .json(&logs_json)
         .send()
         .await?;
@@ -300,4 +311,19 @@ fn insert_transaction_to_map(
             e.get_mut().push(txn);
         }
     }
+}
+
+fn generate_access_token() -> Result<String> {
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JWT_SECRET_KEY env var not set");
+    let claims = JWTClaims {
+        sub: "indexer".to_string(),
+        exp: (Utc::now() + Duration::minutes(5)).timestamp() as u64,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret_key.as_bytes()),
+    )?;
+    Ok(token)
 }
