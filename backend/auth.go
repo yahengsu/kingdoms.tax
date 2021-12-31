@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-const AUTH_HEADER_PREFIX = "Bearer "
+const AuthHeaderPrefix = "Bearer "
 
 func validateToken(token string) bool {
 	claims := jwt.StandardClaims{}
@@ -32,7 +32,7 @@ func authenticateRoute(next func(http.ResponseWriter, *http.Request)) http.Handl
 		}
 
 		// Trim and validate the token
-		token := strings.TrimPrefix(tokens[0], AUTH_HEADER_PREFIX)
+		token := strings.TrimPrefix(tokens[0], AuthHeaderPrefix)
 		if !validateToken(token) {
 			http.Error(w, "Invalid access token", http.StatusUnauthorized)
 			return
