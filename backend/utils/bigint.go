@@ -19,7 +19,7 @@ func (b *BigInt) UnmarshalJson(data []byte) error {
 	}
 
 	var z big.Int
-	_, ok := z.SetString(string(data), 10)
+	_, ok := z.SetString(string(data), 0)
 	if !ok {
 		return fmt.Errorf("not a valid big integer: %s", data)
 	}
