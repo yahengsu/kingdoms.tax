@@ -77,7 +77,9 @@ async fn main() -> Result<()> {
     // Load .env file if local
     match env::var("ENV") {
         Ok(val) if val == "prod" => (),
-        _ => dotenv::dotenv().ok(),
+        _ => {
+            dotenv::dotenv().ok();
+        }
     }
 
     let args: Vec<String> = env::args().collect();

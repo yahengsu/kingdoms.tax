@@ -3,7 +3,6 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"dfk-txns-be/db"
@@ -22,7 +21,6 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	for address, txns := range indexedTxns {
-		log.Printf("address %s: %v", address, txns)
 		if err := db.UpsertTransactions(address, txns); err != nil {
 			http.Error(w, fmt.Sprintf("failed to upsert transactions: %v", err), http.StatusInternalServerError)
 			return
