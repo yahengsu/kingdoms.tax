@@ -7,6 +7,7 @@ import (
 
 	"dfk-txns-be/db"
 	"dfk-txns-be/models"
+	"golang.org/x/sync/errgroup"
 )
 
 type IndexerOutput map[string][]models.Transaction
@@ -20,11 +21,18 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Process each address in a separate goroutine
+	insertGroup, _ := errgroup.WithContext(r.Context())
 	for address, txns := range indexedTxns {
-		if err := db.UpsertTransactions(address, txns); err != nil {
-			http.Error(w, fmt.Sprintf("failed to upsert transactions: %v", err), http.StatusInternalServerError)
-			return
-		}
+		insertGroup.Go(func() error {
+			return db.UpsertTransactions(address, txns)
+		})
+	}
+
+	// Return on first error
+	if err := insertGroup.Wait(); err != nil {
+		http.Error(w, fmt.Sprintf("failed to upsert transactions: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
