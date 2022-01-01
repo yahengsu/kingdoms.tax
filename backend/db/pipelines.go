@@ -1,6 +1,9 @@
 package db
 
-import "go.mongodb.org/mongo-driver/bson"
+import (
+	"dfk-txns-be/models"
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 // I dislike aggregation pipelines very much
 
@@ -53,7 +56,7 @@ func countTxns() bson.D {
 	}
 }
 
-func appendTxns(txns []Transaction) bson.D {
+func appendTxns(txns []models.Transaction) bson.D {
 	return bson.D{
 		{Key: "$addToSet", Value: bson.D{
 			{Key: "txns", Value: bson.D{

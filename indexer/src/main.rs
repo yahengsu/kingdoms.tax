@@ -1,10 +1,13 @@
 use anyhow::Result;
+use chrono::{Duration, Utc};
 use ethers::prelude::{LogMeta, Middleware, TxHash, U256, U64};
 use ethers::providers::{Http, Provider};
 use ethers::types::ValueOrArray;
 use ethers::{core::abi::Abi, types::H160};
 use futures::future::try_join_all;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Entry;
 use std::env;
 use std::fs;
 use std::ops::Range;
@@ -28,6 +31,12 @@ struct ContractJson {
     erc20: HashMap<String, String>,
     erc721: HashMap<String, String>,
     other: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct JWTClaims {
+    sub: String,
+    exp: u64,
 }
 
 const BLOCKS_PER_REQ: u64 = 1;
@@ -65,6 +74,14 @@ struct DfkTransaction {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Load .env file if local
+    match env::var("ENV") {
+        Ok(val) if val == "prod" => (),
+        _ => {
+            dotenv::dotenv().ok();
+        }
+    }
+
     let args: Vec<String> = env::args().collect();
 
     // TODO: Instead of a manually set start block, get latest processed block from DB service.
@@ -159,8 +176,12 @@ async fn index_txns_to_end_block(
                 .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
         );
 
-        push_txns_to_mongo_service(format_logs(&transfers, block_ts_map)).await?;
-        println!("Finished pushing txns to mongo service for block range:{:?} {:?}", start_block, start_block + BLOCKS_PER_REQ);
+        push_txns_to_mongo_service(&transfers, block_ts_map).await?;
+        println!(
+            "Finished pushing txns to mongo service for block range:{:?} {:?}",
+            start_block,
+            start_block + BLOCKS_PER_REQ
+        );
 
         start_block += BLOCKS_PER_REQ;
         break; // Remove when actually indexing
@@ -186,73 +207,131 @@ async fn get_block_timestamps(
     return Ok(blocks_map);
 }
 
-async fn push_txns_to_mongo_service(logs: serde_json::Value) -> Result<()> {
-    //TODO: Push valid transactions to Rick's mongo service once it's ready
-    println!("{}", logs);
+async fn push_txns_to_mongo_service(
+    logs: &Vec<(DfkTransfer, LogMeta)>,
+    block_ts_map: HashMap<U64, u64>,
+) -> Result<()> {
+    let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
+    let logs_json = marshal_logs_to_json(logs, block_ts_map);
+    let access_token = generate_access_token()?;
+    let _response = reqwest::Client::new()
+        .post(&api_url)
+        .header("Content-Type", "application/json")
+        .header("Authorization", "Bearer ".to_owned() + &access_token)
+        .json(&logs_json)
+        .send()
+        .await?;
     Ok(())
 }
 
-fn format_logs(
+fn marshal_logs_to_json(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> serde_json::Value {
-    let mut transfers: Vec<DfkTransaction> = vec![];
+    let mut transfer_map = HashMap::new();
     for (transfer, meta) in logs.iter() {
         let ts = *block_ts_map
             .get(&meta.block_number)
             .expect("Missing block number while formatting transfer");
-        let blockNum = meta.block_number.as_u64();
+        let block_num = meta.block_number.as_u64();
         match transfer {
             DfkTransfer::Erc20(Erc20::TransferFilter { from, to, value }) => {
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: from.clone(),
-                    token_addr: meta.address,
-                    net_amount: value.clone(),
-                    block_number: blockNum,
-                    timestamp: ts,
-                    direction: Direction::OUT,
-                    token_type: TokenType::ERC20,
-                    token_id: None,
-                });
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: to.clone(),
-                    token_addr: meta.address,
-                    net_amount: value.clone(),
-                    block_number: blockNum,
-                    timestamp: ts,
-                    direction: Direction::IN,
-                    token_type: TokenType::ERC20,
-                    token_id: None,
-                });
+                insert_transaction_to_map(
+                    &mut transfer_map,
+                    from.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: from.clone(),
+                        token_addr: meta.address,
+                        net_amount: value.clone(),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::OUT,
+                        token_type: TokenType::ERC20,
+                        token_id: None,
+                    },
+                );
+                insert_transaction_to_map(
+                    &mut transfer_map,
+                    to.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: to.clone(),
+                        token_addr: meta.address,
+                        net_amount: value.clone(),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::IN,
+                        token_type: TokenType::ERC20,
+                        token_id: None,
+                    },
+                );
             }
+
             DfkTransfer::Erc721(Erc721::TransferFilter { from, to, token_id }) => {
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: from.clone(),
-                    token_addr: meta.address,
-                    net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: blockNum,
-                    timestamp: ts,
-                    direction: Direction::OUT,
-                    token_type: TokenType::ERC721,
-                    token_id: Some(token_id.clone()),
-                });
-                transfers.push(DfkTransaction {
-                    txn_hash: meta.transaction_hash,
-                    account: to.clone(),
-                    token_addr: meta.address,
-                    net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
-                    block_number: blockNum,
-                    timestamp: ts,
-                    direction: Direction::IN,
-                    token_type: TokenType::ERC721,
-                    token_id: Some(token_id.clone()),
-                });
+                insert_transaction_to_map(
+                    &mut transfer_map,
+                    from.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: from.clone(),
+                        token_addr: meta.address,
+                        net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::OUT,
+                        token_type: TokenType::ERC721,
+                        token_id: Some(token_id.clone()),
+                    },
+                );
+                insert_transaction_to_map(
+                    &mut transfer_map,
+                    to.clone(),
+                    DfkTransaction {
+                        txn_hash: meta.transaction_hash,
+                        account: to.clone(),
+                        token_addr: meta.address,
+                        net_amount: U256::from_dec_str("1").expect("Error converting to U256"),
+                        block_number: block_num,
+                        timestamp: ts,
+                        direction: Direction::IN,
+                        token_type: TokenType::ERC721,
+                        token_id: Some(token_id.clone()),
+                    },
+                );
             }
         }
     }
 
-    serde_json::to_value(&transfers).unwrap()
+    serde_json::to_value(&transfer_map).unwrap()
+}
+
+fn insert_transaction_to_map(
+    map: &mut HashMap<H160, Vec<DfkTransaction>>,
+    key: H160,
+    txn: DfkTransaction,
+) {
+    match map.entry(key) {
+        Entry::Vacant(e) => {
+            e.insert(vec![txn]);
+        }
+        Entry::Occupied(mut e) => {
+            e.get_mut().push(txn);
+        }
+    }
+}
+
+fn generate_access_token() -> Result<String> {
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JWT_SECRET_KEY env var not set");
+    let claims = JWTClaims {
+        sub: "indexer".to_string(),
+        exp: (Utc::now() + Duration::minutes(5)).timestamp() as u64,
+    };
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret_key.as_bytes()),
+    )?;
+    Ok(token)
 }
