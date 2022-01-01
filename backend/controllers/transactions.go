@@ -1,4 +1,4 @@
-package routes
+package controllers
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ type GetTransactionsResponse struct {
 	HasMore      bool                 `json:"has_more"`
 }
 
-func GetTransactions(w http.ResponseWriter, r *http.Request) {
+func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	startTime := query.Get("startTime")
 	endTime := query.Get("endTime")

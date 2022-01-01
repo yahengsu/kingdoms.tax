@@ -1,8 +1,9 @@
-package routes
+package controllers
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"dfk-txns-be/db"
@@ -12,7 +13,7 @@ import (
 
 type IndexerOutput map[string][]models.Transaction
 
-func AddTransactions(w http.ResponseWriter, r *http.Request) {
+func (b *BaseController) AddTransactions(w http.ResponseWriter, r *http.Request) {
 	indexedTxns := IndexerOutput{}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&indexedTxns); err != nil {
@@ -23,7 +24,9 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 
 	// Process each address in a separate goroutine
 	insertGroup, _ := errgroup.WithContext(r.Context())
+	txnCount := 0
 	for address, txns := range indexedTxns {
+		txnCount += len(txns)
 		insertGroup.Go(func() error {
 			return db.UpsertTransactions(address, txns)
 		})
@@ -35,6 +38,7 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Added %d transactions", txnCount)
 	w.WriteHeader(http.StatusOK)
 	return
 }
