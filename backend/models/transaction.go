@@ -11,4 +11,5 @@ type Transaction struct {
 	TokenType    string `json:"token_type" bson:"token_type"`
 	TxnHash      string `json:"txn_hash" bson:"txn_hash"`
 	CounterParty string `json:"counterparty" bson:"counterparty"`
+	LogIndex     string `json:"log_index" bson: "log_index"`
 }
