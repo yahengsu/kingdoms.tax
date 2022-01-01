@@ -210,7 +210,7 @@ async fn push_txns_to_mongo_service(
     block_ts_map: HashMap<U64, u64>,
 ) -> Result<()> {
     let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
-    let logs_json = marshall_logs_to_json(logs, block_ts_map);
+    let logs_json = marshal_logs_to_json(logs, block_ts_map);
     let access_token = generate_access_token()?;
     let _response = reqwest::Client::new()
         .post(&api_url)
@@ -222,7 +222,7 @@ async fn push_txns_to_mongo_service(
     Ok(())
 }
 
-fn marshall_logs_to_json(
+fn marshal_logs_to_json(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> serde_json::Value {
