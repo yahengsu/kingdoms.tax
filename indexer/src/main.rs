@@ -161,30 +161,48 @@ async fn index_txns_to_end_block(
         // Query transfers in parallel
         let erc20_transfers = erc20_transfer_filter.query_with_meta();
         let erc721_transfers = erc721_transfer_filter.query_with_meta();
-        let raw_transfers = try_join!(erc20_transfers, erc721_transfers)?;
+        let raw_transfers = try_join!(erc20_transfers, erc721_transfers);
 
-        let mut transfers: Vec<(DfkTransfer, LogMeta)> = raw_transfers
-            .0
-            .into_iter()
-            .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
-            .collect();
+        match raw_transfers {
+            Ok(ok_transfers) => {
+                let mut transfers: Vec<(DfkTransfer, LogMeta)> = ok_transfers 
+                    .0
+                    .into_iter()
+                    .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
+                    .collect();
 
-        transfers.extend(
-            raw_transfers
-                .1
-                .into_iter()
-                .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
-        );
+                transfers.extend(
+                    ok_transfers 
+                        .1
+                        .into_iter()
+                        .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
+                );
 
-        push_txns_to_mongo_service(&transfers, block_ts_map).await?;
-        println!(
-            "Finished pushing txns to mongo service for block range:{:?} {:?}",
-            start_block,
-            start_block + BLOCKS_PER_REQ
-        );
+                println!("Pushing txns to mongo service for block range:{:?} {:?}",
+                         start_block,
+                         start_block + BLOCKS_PER_REQ
+                );
+                push_txns_to_mongo_service(&transfers, block_ts_map).await?;
+                println!(
+                    "Finished pushing txns to mongo service for block range:{:?} {:?}",
+                    start_block,
+                    start_block + BLOCKS_PER_REQ
+                );
 
-        start_block += BLOCKS_PER_REQ;
-        break; // Remove when actually indexing
+                start_block += BLOCKS_PER_REQ;
+            }
+
+            Err(err) => {
+                println!("Error when calling rpc: {:?}", err);
+                println!(
+                    "Retrying block range:{:?} {:?}",
+                    start_block,
+                    start_block + BLOCKS_PER_REQ
+                );
+                continue;
+            }
+        }
+        break; //TODO: Remove when actually indexing
     }
     Ok(())
 }
@@ -211,8 +229,10 @@ async fn push_txns_to_mongo_service(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> Result<()> {
+    println!("Attempting to send {:?} (x2) transactions to mongo", logs.len());
     let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
     let logs_json = marshal_logs_to_json(logs, block_ts_map);
+    println!("Sending logs\n {:?}", logs_json);
     let access_token = generate_access_token()?;
     let _response = reqwest::Client::new()
         .post(&api_url)
@@ -302,7 +322,6 @@ fn marshal_logs_to_json(
             }
         }
     }
-
     serde_json::to_value(&transfer_map).unwrap()
 }
 
