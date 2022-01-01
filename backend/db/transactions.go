@@ -99,7 +99,7 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 
 // AddTransaction adds a transaction to the database.
 func (db *Database) AddTransaction(txn models.Transaction) error {
-	query := `INSERT INTO Transactions (account, counterparty, block_num, direction, net_amount, timestamp, token_addr, token_id, token_type, txn_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
+	query := `INSERT INTO Transactions (account, counterparty, block_num, direction, net_amount, timestamp, token_address, token_id, token_type, txn_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`
 
 	_, err := db.pool.Exec(context.TODO(), query, txn.Account, txn.CounterParty, txn.BlockNum, txn.Direction, txn.NetAmount,
 		txn.Timestamp, txn.TokenAddr, txn.TokenID, txn.TokenType, txn.TxnHash)
