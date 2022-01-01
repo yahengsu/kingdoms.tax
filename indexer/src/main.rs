@@ -14,6 +14,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 use tokio::try_join;
+use tokio::time::{sleep};
 
 mod contracts;
 
@@ -40,6 +41,7 @@ struct JWTClaims {
 }
 
 const BLOCKS_PER_REQ: u64 = 1;
+const RETRY_WAIT_TIME: u64 = 5;
 
 #[derive(Serialize, Deserialize)]
 enum DfkTransfer {
@@ -148,6 +150,8 @@ async fn index_txns_to_end_block(
         .filter
         .address(ValueOrArray::Array(erc721s));
 
+    let mut backoff_mult: u64 = 1;
+
     while start_block < last_block - BLOCKS_PER_REQ {
         // Set new selection on filters
         let selection = start_block..start_block + BLOCKS_PER_REQ;
@@ -167,6 +171,8 @@ async fn index_txns_to_end_block(
 
         match raw_transfers {
             Ok(ok_transfers) => {
+                // Reset exponential backoff multiplier since we were able to query successfully.
+                backoff_mult = 1;
                 let mut transfers: Vec<(DfkTransfer, LogMeta)> = ok_transfers 
                     .0
                     .into_iter()
@@ -196,6 +202,10 @@ async fn index_txns_to_end_block(
 
             Err(err) => {
                 println!("Error when calling rpc: {:?}", err);
+                println!("Waiting {:?} seconds", RETRY_WAIT_TIME*backoff_mult);
+                sleep(tokio::time::Duration::from_secs(RETRY_WAIT_TIME*backoff_mult)).await;
+                // Increase exponential backoff multiplier
+                backoff_mult *= 2;
                 println!(
                     "Retrying block range:{:?} {:?}",
                     start_block,
@@ -204,7 +214,6 @@ async fn index_txns_to_end_block(
                 continue;
             }
         }
-        break; //TODO: Remove when actually indexing
     }
     Ok(())
 }
