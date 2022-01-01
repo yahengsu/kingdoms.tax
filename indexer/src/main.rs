@@ -234,7 +234,6 @@ async fn push_txns_to_mongo_service(
     println!("Attempting to send {:?} (x2) transactions to mongo", logs.len());
     let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
     let logs_json = marshal_logs_to_json(logs, block_ts_map);
-    println!("Sending logs\n {:?}", logs_json);
     let access_token = generate_access_token()?;
     let _response = reqwest::Client::new()
         .post(&api_url)
