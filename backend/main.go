@@ -7,7 +7,6 @@ import (
 
 	"dfk-txns-be/db"
 	"dfk-txns-be/routes"
-	"dfk-txns-be/utils"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -30,7 +29,7 @@ func main() {
 	// Set up router
 	r := mux.NewRouter()
 	r.HandleFunc("/transactions", routes.GetTransactions).Methods("GET")
-	r.HandleFunc("/transactions", utils.AuthenticateRoute(routes.AddTransactions)).Methods("POST")
+	r.HandleFunc("/transactions", AuthenticateRoute(routes.AddTransactions)).Methods("POST")
 
 	// Run server
 	port := os.Getenv("PORT")

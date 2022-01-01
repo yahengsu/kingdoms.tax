@@ -74,6 +74,12 @@ struct DfkTransaction {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Load .env file if local
+    match env::var("ENV") {
+        Ok(val) if val == "prod" => (),
+        _ => dotenv::dotenv().ok(),
+    }
+
     let args: Vec<String> = env::args().collect();
 
     // TODO: Instead of a manually set start block, get latest processed block from DB service.
