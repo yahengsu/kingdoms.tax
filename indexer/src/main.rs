@@ -14,6 +14,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
 use tokio::try_join;
+use tokio::time::{sleep};
 
 mod contracts;
 
@@ -39,7 +40,8 @@ struct JWTClaims {
     exp: u64,
 }
 
-const BLOCKS_PER_REQ: u64 = 1;
+const BLOCKS_PER_REQ: u64 = 1000;
+const RETRY_WAIT_TIME: u64 = 5;
 
 #[derive(Serialize, Deserialize)]
 enum DfkTransfer {
@@ -68,6 +70,8 @@ struct DfkTransaction {
     block_number: u64,
     timestamp: u64,
     direction: Direction,
+    counterparty: H160,
+    log_index: U256,
     token_type: TokenType,
     token_id: Option<U256>, // token_id for erc721 NFT transfers
 }
@@ -146,6 +150,8 @@ async fn index_txns_to_end_block(
         .filter
         .address(ValueOrArray::Array(erc721s));
 
+    let mut backoff_mult: u64 = 1;
+
     while start_block < last_block - BLOCKS_PER_REQ {
         // Set new selection on filters
         let selection = start_block..start_block + BLOCKS_PER_REQ;
@@ -161,30 +167,53 @@ async fn index_txns_to_end_block(
         // Query transfers in parallel
         let erc20_transfers = erc20_transfer_filter.query_with_meta();
         let erc721_transfers = erc721_transfer_filter.query_with_meta();
-        let raw_transfers = try_join!(erc20_transfers, erc721_transfers)?;
+        let raw_transfers = try_join!(erc20_transfers, erc721_transfers);
 
-        let mut transfers: Vec<(DfkTransfer, LogMeta)> = raw_transfers
-            .0
-            .into_iter()
-            .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
-            .collect();
+        match raw_transfers {
+            Ok(ok_transfers) => {
+                // Reset exponential backoff multiplier since we were able to query successfully.
+                backoff_mult = 1;
+                let mut transfers: Vec<(DfkTransfer, LogMeta)> = ok_transfers 
+                    .0
+                    .into_iter()
+                    .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
+                    .collect();
 
-        transfers.extend(
-            raw_transfers
-                .1
-                .into_iter()
-                .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
-        );
+                transfers.extend(
+                    ok_transfers 
+                        .1
+                        .into_iter()
+                        .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
+                );
 
-        push_txns_to_mongo_service(&transfers, block_ts_map).await?;
-        println!(
-            "Finished pushing txns to mongo service for block range:{:?} {:?}",
-            start_block,
-            start_block + BLOCKS_PER_REQ
-        );
+                println!("Pushing txns to mongo service for block range:{:?} {:?}",
+                         start_block,
+                         start_block + BLOCKS_PER_REQ
+                );
+                push_txns_to_mongo_service(&transfers, block_ts_map).await?;
+                println!(
+                    "Finished pushing txns to mongo service for block range:{:?} {:?}",
+                    start_block,
+                    start_block + BLOCKS_PER_REQ
+                );
 
-        start_block += BLOCKS_PER_REQ;
-        break; // Remove when actually indexing
+                start_block += BLOCKS_PER_REQ;
+            }
+
+            Err(err) => {
+                println!("Error when calling rpc: {:?}", err);
+                println!("Waiting {:?} seconds", RETRY_WAIT_TIME*backoff_mult);
+                sleep(tokio::time::Duration::from_secs(RETRY_WAIT_TIME*backoff_mult)).await;
+                // Increase exponential backoff multiplier
+                backoff_mult *= 2;
+                println!(
+                    "Retrying block range:{:?} {:?}",
+                    start_block,
+                    start_block + BLOCKS_PER_REQ
+                );
+                continue;
+            }
+        }
     }
     Ok(())
 }
@@ -211,6 +240,7 @@ async fn push_txns_to_mongo_service(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> Result<()> {
+    println!("Attempting to send {:?} (x2) transactions to mongo", logs.len());
     let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
     let logs_json = marshal_logs_to_json(logs, block_ts_map);
     let access_token = generate_access_token()?;
@@ -247,6 +277,8 @@ fn marshal_logs_to_json(
                         block_number: block_num,
                         timestamp: ts,
                         direction: Direction::OUT,
+                        counterparty: to.clone(),
+                        log_index: meta.log_index,
                         token_type: TokenType::ERC20,
                         token_id: None,
                     },
@@ -262,6 +294,8 @@ fn marshal_logs_to_json(
                         block_number: block_num,
                         timestamp: ts,
                         direction: Direction::IN,
+                        counterparty: from.clone(),
+                        log_index: meta.log_index,
                         token_type: TokenType::ERC20,
                         token_id: None,
                     },
@@ -280,6 +314,8 @@ fn marshal_logs_to_json(
                         block_number: block_num,
                         timestamp: ts,
                         direction: Direction::OUT,
+                        counterparty: to.clone(),
+                        log_index: meta.log_index,
                         token_type: TokenType::ERC721,
                         token_id: Some(token_id.clone()),
                     },
@@ -295,6 +331,8 @@ fn marshal_logs_to_json(
                         block_number: block_num,
                         timestamp: ts,
                         direction: Direction::IN,
+                        counterparty: from.clone(),
+                        log_index: meta.log_index,
                         token_type: TokenType::ERC721,
                         token_id: Some(token_id.clone()),
                     },
@@ -302,7 +340,6 @@ fn marshal_logs_to_json(
             }
         }
     }
-
     serde_json::to_value(&transfer_map).unwrap()
 }
 
