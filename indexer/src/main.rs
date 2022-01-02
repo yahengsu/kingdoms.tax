@@ -40,7 +40,7 @@ struct JWTClaims {
     exp: u64,
 }
 
-const BLOCKS_PER_REQ: u64 = 1000;
+const BLOCKS_PER_REQ: u64 = 100;
 const RETRY_WAIT_TIME: u64 = 5;
 
 #[derive(Serialize, Deserialize)]
