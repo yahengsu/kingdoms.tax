@@ -59,6 +59,7 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	} else {
+		log.Println("selecting transactions by time range")
 		startTimeInt, err := strconv.Atoi(startTime)
 		if err != nil {
 			log.Printf("error parsing start time: %v", err)
@@ -97,5 +98,4 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 }

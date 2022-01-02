@@ -12,13 +12,15 @@ type Database struct {
 	pool *pgxpool.Pool
 }
 
+const PoolSize = 99
+
 func Initialize(url, user, password, dbName string, port int) (*Database, error) {
 	connectionString := "postgresql://" + user + ":" + password + "@" + url + ":" + strconv.Itoa(port) + "/" + dbName + "?sslmode=disable"
 	config, err := pgxpool.ParseConfig(connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse connection string: %v", err)
 	}
-	config.MaxConns = 90
+	config.MaxConns = PoolSize
 	pool, err := pgxpool.ConnectConfig(context.TODO(), config)
 
 	// Ping the database to make sure connection works
