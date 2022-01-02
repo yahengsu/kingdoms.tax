@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"dfk-txns-be/models"
 	"golang.org/x/sync/errgroup"
@@ -32,6 +33,11 @@ func (b *BaseController) AddTransactions(w http.ResponseWriter, r *http.Request)
 		insertGroup.Go(func() error {
 			for _, txn := range accountTxns {
 				if err := b.db.AddTransaction(txn); err != nil {
+					// Don't return an error for duplicate transactions, log and continue
+					if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+						log.Printf("tried to insert duplicate transaction: %+v", txn)
+						continue
+					}
 					return err
 				}
 			}
