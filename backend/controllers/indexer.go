@@ -27,9 +27,10 @@ func (b *BaseController) AddTransactions(w http.ResponseWriter, r *http.Request)
 	insertGroup, _ := errgroup.WithContext(context.TODO())
 	txnCount := 0
 	for _, txns := range indexedTxns {
+		accountTxns := txns
 		txnCount += len(txns)
 		insertGroup.Go(func() error {
-			for _, txn := range txns {
+			for _, txn := range accountTxns {
 				if err := b.db.AddTransaction(txn); err != nil {
 					return err
 				}
