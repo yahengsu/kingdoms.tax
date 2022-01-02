@@ -1,4 +1,4 @@
-package routes
+package controllers
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"dfk-txns-be/db"
 	"dfk-txns-be/models"
 )
 
@@ -18,7 +17,7 @@ type GetTransactionsResponse struct {
 	HasMore      bool                 `json:"has_more"`
 }
 
-func GetTransactions(w http.ResponseWriter, r *http.Request) {
+func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	startTime := query.Get("startTime")
 	endTime := query.Get("endTime")
@@ -36,42 +35,54 @@ func GetTransactions(w http.ResponseWriter, r *http.Request) {
 		count = 25
 	}
 
+	offset := page * count
+
 	response := GetTransactionsResponse{}
-	response.Total, err = db.GetTotalTransactionCount(address)
-	if err != nil {
-		log.Printf("error getting total transaction count: %v", err)
-		http.Error(w, "error getting transactions", http.StatusInternalServerError)
-		return
-	}
-	response.HasMore = response.Total > (page+1)*count
 
 	selectAll := startTime == "" && endTime == ""
 	fmt.Println(address, startTime, endTime)
 
 	var txns []models.Transaction
 	if selectAll {
-		txns, err = db.GetAllTransactions(address, page, count)
+		response.Total, err = b.db.GetNumTransactions(address)
+		if err != nil {
+			log.Printf("error getting total transaction count: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+		response.HasMore = response.Total > offset+count
+
+		txns, err = b.db.GetTransactions(address, offset, count)
 		if err != nil {
 			log.Printf("error getting transactions: %v", err)
 			http.Error(w, "error getting transactions", http.StatusInternalServerError)
 			return
 		}
 	} else {
-		startTimeInt, err := strconv.ParseInt(startTime, 10, 64)
+		log.Println("selecting transactions by time range")
+		startTimeInt, err := strconv.Atoi(startTime)
 		if err != nil {
 			log.Printf("error parsing start time: %v", err)
 			http.Error(w, "invalid startTime in request", http.StatusBadRequest)
 			return
 		}
 
-		endTimeInt, err := strconv.ParseInt(endTime, 10, 64)
+		endTimeInt, err := strconv.Atoi(endTime)
 		if err != nil {
 			log.Printf("error parsing end time: %v", err)
 			http.Error(w, "invalid endTime in request", http.StatusBadRequest)
 			return
 		}
 
-		txns, err = db.GetTransactionsInTimeRange(address, startTimeInt, endTimeInt, page, count)
+		response.Total, err = b.db.GetNumTransactionsInRange(address, startTimeInt, endTimeInt)
+		if err != nil {
+			log.Printf("error getting total transaction count: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+		response.HasMore = response.Total > offset+count
+
+		txns, err = b.db.GetTransactionsInRange(address, startTimeInt, endTimeInt, offset, count)
 		if err != nil {
 			log.Printf("error getting transactions: %v", err)
 			http.Error(w, "error getting transactions", http.StatusInternalServerError)
@@ -87,5 +98,4 @@ func GetTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 }

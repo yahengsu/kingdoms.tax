@@ -4,9 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
+	"dfk-txns-be/controllers"
 	"dfk-txns-be/db"
-	"dfk-txns-be/routes"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -20,16 +21,27 @@ func main() {
 		}
 	}
 
-	// Set up MongoDB
-	err := db.InitMongoClient(os.Getenv("MONGODB_URL"))
+	// Set up DB pool
+	dbUrl := os.Getenv("POSTGRES_URL")
+	dbPort, err := strconv.Atoi(os.Getenv("POSTGRES_PORT"))
 	if err != nil {
-		log.Fatalf("Error initializing MongoDB: %v", err)
+		log.Fatalf("POSTGRES_PORT is not a valid integer: %v", err)
+	}
+	dbName := os.Getenv("POSTGRES_DB")
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+
+	database, err := db.Initialize(dbUrl, dbUser, dbPassword, dbName, dbPort)
+	if err != nil {
+		log.Fatalf("Error initializing DB: %v", err)
 	}
 
-	// Set up router
+	server := controllers.NewBaseController(database)
+
+	// Register routes
 	r := mux.NewRouter()
-	r.HandleFunc("/transactions", routes.GetTransactions).Methods("GET")
-	r.HandleFunc("/transactions", AuthenticateRoute(routes.AddTransactions)).Methods("POST")
+	r.HandleFunc("/transactions", server.GetTransactions).Methods("GET")
+	r.HandleFunc("/transactions", controllers.AuthenticateRoute(server.AddTransactions)).Methods("POST")
 
 	// Run server
 	port := os.Getenv("PORT")
