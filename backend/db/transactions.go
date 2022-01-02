@@ -40,7 +40,7 @@ func (db *Database) GetNumTransactionsInRange(account string, startTime, endTime
 // paginated by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactions(account string, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 ORDER BY timestamp, txn_hash DESC LIMIT $2 OFFSET $3;`
+	query := `SELECT * FROM Transaction WHERE account = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3;`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), count, offset)
 	if err != nil {
@@ -71,7 +71,7 @@ func (db *Database) GetTransactions(account string, offset, count int) ([]models
 // in the specified time period, paginated by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactionsInRange(account string, startTime, endTime, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC, txn_hash LIMIT $4 OFFSET $5;`
+	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC LIMIT $4 OFFSET $5;`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime, count, offset)
 	if err != nil {

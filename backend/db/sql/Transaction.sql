@@ -15,3 +15,5 @@ CREATE TABLE IF NOT EXISTS Transaction (
     log_index TEXT NOT NULL,
     UNIQUE(account, counterparty, block_num, direction, net_amount, timestamp, token_address, token_id, token_type, txn_hash, log_index)
 );
+
+CREATE INDEX account_timestamp_index on Transaction(account, timestamp DESC);
