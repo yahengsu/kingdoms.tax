@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 	// Run server
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Println("PORT not set, defaulting to 8080")
+		log.Info("PORT not set, defaulting to 8080")
 		port = "8080"
 	}
 	log.Fatal(http.ListenAndServe(":"+port, c.Handler(r)))
