@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use chrono::{Duration, Utc};
 use ethers::prelude::{LogMeta, Middleware, TxHash, U256, U64};
 use ethers::providers::{Http, Provider};
@@ -191,7 +191,14 @@ async fn index_txns_to_end_block(
                     start_block,
                     start_block + BLOCKS_PER_REQ
                 );
-                push_txns_to_mongo_service(&transfers, block_ts_map).await?;
+                let push_status = push_txns_to_mongo_service(&transfers, block_ts_map).await;
+                match push_status {
+                    Err(_) => {
+                        println!("Error while pushing txns to backend, retrying same range");
+                        continue;
+                    }
+                    _ => {}
+                }
                 println!(
                     "Finished pushing txns to mongo service for block range: {:?} - {:?}",
                     start_block,
@@ -262,6 +269,7 @@ async fn push_txns_to_mongo_service(
     if !response.status().is_success() {
         println!("Error when sending logs to mongo: {:?}", response.status());
         println!("Message: {:?}", response.text().await?);
+        return Err(anyhow!("Error from backend logged above"));
     }
     Ok(())
 }
