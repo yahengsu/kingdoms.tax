@@ -13,8 +13,8 @@ use std::fs;
 use std::ops::Range;
 use std::sync::Arc;
 use std::{collections::HashMap, convert::TryFrom, str::FromStr};
+use tokio::time::sleep;
 use tokio::try_join;
-use tokio::time::{sleep};
 
 mod contracts;
 
@@ -40,7 +40,7 @@ struct JWTClaims {
     exp: u64,
 }
 
-const BLOCKS_PER_REQ: u64 = 1000;
+const BLOCKS_PER_REQ: u64 = 1;
 const RETRY_WAIT_TIME: u64 = 5;
 
 #[derive(Serialize, Deserialize)]
@@ -173,37 +173,41 @@ async fn index_txns_to_end_block(
             Ok(ok_transfers) => {
                 // Reset exponential backoff multiplier since we were able to query successfully.
                 backoff_mult = 1;
-                let mut transfers: Vec<(DfkTransfer, LogMeta)> = ok_transfers 
+                let mut transfers: Vec<(DfkTransfer, LogMeta)> = ok_transfers
                     .0
                     .into_iter()
                     .map(|(t, meta)| (DfkTransfer::Erc20(t), meta))
                     .collect();
 
                 transfers.extend(
-                    ok_transfers 
+                    ok_transfers
                         .1
                         .into_iter()
                         .map(|(t, meta)| (DfkTransfer::Erc721(t), meta)),
                 );
 
-                println!("Pushing txns to mongo service for block range:{:?} {:?}",
-                         start_block,
-                         start_block + BLOCKS_PER_REQ
+                println!(
+                    "Pushing txns to mongo service for block range: {:?} - {:?}",
+                    start_block,
+                    start_block + BLOCKS_PER_REQ
                 );
                 push_txns_to_mongo_service(&transfers, block_ts_map).await?;
                 println!(
-                    "Finished pushing txns to mongo service for block range:{:?} {:?}",
+                    "Finished pushing txns to mongo service for block range: {:?} - {:?}",
                     start_block,
                     start_block + BLOCKS_PER_REQ
                 );
 
-                start_block += BLOCKS_PER_REQ;
+                start_block += BLOCKS_PER_REQ + 1;
             }
 
             Err(err) => {
                 println!("Error when calling rpc: {:?}", err);
-                println!("Waiting {:?} seconds", RETRY_WAIT_TIME*backoff_mult);
-                sleep(tokio::time::Duration::from_secs(RETRY_WAIT_TIME*backoff_mult)).await;
+                println!("Waiting {:?} seconds", RETRY_WAIT_TIME * backoff_mult);
+                sleep(tokio::time::Duration::from_secs(
+                    RETRY_WAIT_TIME * backoff_mult,
+                ))
+                .await;
                 // Increase exponential backoff multiplier
                 backoff_mult *= 2;
                 println!(
@@ -240,17 +244,25 @@ async fn push_txns_to_mongo_service(
     logs: &Vec<(DfkTransfer, LogMeta)>,
     block_ts_map: HashMap<U64, u64>,
 ) -> Result<()> {
-    println!("Attempting to send {:?} (x2) transactions to mongo", logs.len());
+    println!(
+        "Attempting to send {:?} (x2) transactions to mongo",
+        logs.len()
+    );
     let api_url = env::var("INDEXER_API_URL").expect("INDEXER_API_URL env var not set");
     let logs_json = marshal_logs_to_json(logs, block_ts_map);
     let access_token = generate_access_token()?;
-    let _response = reqwest::Client::new()
+    let response = reqwest::Client::new()
         .post(&api_url)
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer ".to_owned() + &access_token)
         .json(&logs_json)
         .send()
         .await?;
+
+    if !response.status().is_success() {
+        println!("Error when sending logs to mongo: {:?}", response.status());
+        println!("Message: {:?}", response.text().await?);
+    }
     Ok(())
 }
 
