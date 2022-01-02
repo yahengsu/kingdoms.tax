@@ -10,6 +10,7 @@ import (
 	"dfk-txns-be/db"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -37,6 +38,13 @@ func main() {
 	}
 
 	server := controllers.NewBaseController(database)
+	c := cors.New(cors.Options{
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+		AllowedOrigins:   []string{"*"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
 
 	// Register routes
 	r := mux.NewRouter()
@@ -49,5 +57,5 @@ func main() {
 		log.Println("PORT not set, defaulting to 8080")
 		port = "8080"
 	}
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+port, c.Handler(r)))
 }

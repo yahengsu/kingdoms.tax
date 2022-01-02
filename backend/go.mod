@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/joho/godotenv v1.4.0
+	github.com/rs/cors v1.8.2
 	go.mongodb.org/mongo-driver v1.8.1
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 )

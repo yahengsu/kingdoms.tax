@@ -12,7 +12,7 @@ type Database struct {
 	pool *pgxpool.Pool
 }
 
-const PoolSize = 99
+const PoolSize = 200
 
 func Initialize(url, user, password, dbName string, port int) (*Database, error) {
 	connectionString := "postgresql://" + user + ":" + password + "@" + url + ":" + strconv.Itoa(port) + "/" + dbName + "?sslmode=disable"

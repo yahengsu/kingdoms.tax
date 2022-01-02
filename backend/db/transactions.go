@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"dfk-txns-be/models"
 )
@@ -13,7 +14,7 @@ func (db *Database) GetNumTransactions(account string) (int, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM Transaction WHERE account = $1;`
 
-	err := db.pool.QueryRow(context.TODO(), query, account).Scan(&count)
+	err := db.pool.QueryRow(context.TODO(), query, strings.ToLower(account)).Scan(&count)
 	if err != nil {
 		return count, fmt.Errorf("failed to get number of transactions: %v", err)
 	}
@@ -27,7 +28,7 @@ func (db *Database) GetNumTransactionsInRange(account string, startTime, endTime
 	var count int
 	query := `SELECT COUNT(*) FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3;`
 
-	err := db.pool.QueryRow(context.TODO(), query, account, startTime, endTime).Scan(&count)
+	err := db.pool.QueryRow(context.TODO(), query, strings.ToLower(account), startTime, endTime).Scan(&count)
 	if err != nil {
 		return count, fmt.Errorf("failed to get number of transactions: %v", err)
 	}
@@ -41,7 +42,7 @@ func (db *Database) GetTransactions(account string, offset, count int) ([]models
 	var txns []models.Transaction
 	query := `SELECT * FROM Transaction WHERE account = $1 ORDER BY timestamp, txn_hash DESC LIMIT $2 OFFSET $3;`
 
-	rows, err := db.pool.Query(context.TODO(), query, account, count, offset)
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), count, offset)
 	if err != nil {
 		return txns, fmt.Errorf("failed to get transactions: %v", err)
 	}
@@ -72,7 +73,7 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 	var txns []models.Transaction
 	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC, txn_hash LIMIT $4 OFFSET $5;`
 
-	rows, err := db.pool.Query(context.TODO(), query, account, startTime, endTime, count, offset)
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime, count, offset)
 	if err != nil {
 		return txns, fmt.Errorf("failed to get transactions: %v", err)
 	}
@@ -101,7 +102,7 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 func (db *Database) AddTransaction(txn models.Transaction) error {
 	query := `INSERT INTO Transaction (account, counterparty, block_num, direction, net_amount, timestamp, token_address, token_id, token_type, txn_hash, log_index) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
 
-	_, err := db.pool.Exec(context.TODO(), query, txn.Account, txn.CounterParty, txn.BlockNum, txn.Direction, txn.NetAmount,
+	_, err := db.pool.Exec(context.TODO(), query, strings.ToLower(txn.Account), txn.CounterParty, txn.BlockNum, txn.Direction, txn.NetAmount,
 		txn.Timestamp, txn.TokenAddr, txn.TokenID, txn.TokenType, txn.TxnHash, txn.LogIndex)
 	if err != nil {
 		return fmt.Errorf("failed to add transaction: %v", err)

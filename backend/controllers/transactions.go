@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -35,12 +34,10 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 		count = 25
 	}
 
-	offset := page * count
-
 	response := GetTransactionsResponse{}
 
 	selectAll := startTime == "" && endTime == ""
-	fmt.Println(address, startTime, endTime)
+	offset := page * count
 
 	var txns []models.Transaction
 	if selectAll {
