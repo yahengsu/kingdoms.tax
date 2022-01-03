@@ -34,26 +34,22 @@ const Home: NextPage = () => {
         penis
       </h1>
       <FormProvider {...formMethods}>
-        <form className="mt-10 w-1/3" onSubmit={formMethods.handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-8 gap-3 w-full mb-10">
-            <div className="col-span-6">
-              <Input
-                formFieldName="address"
-                placeholder="Wallet Address"
-                autoComplete="off"
-                errorState={Boolean(formErrors.address)}
-                formRegisterOptions={{
-                  required: {
-                    value: true,
-                    message: 'Please enter a wallet address.',
-                  },
-                  validate: (value) => validateAddress(value) || 'Please enter a valid wallet address.',
-                }}
-              />
-            </div>
-            <div className="col-span-2">
-              <Button buttonText="Search" />
-            </div>
+        <form className="mt-10 w-3/4 md:w-1/2 lg:w-3/7 xl:w-1/3" onSubmit={formMethods.handleSubmit(onSubmit)}>
+          <div className="flex flex-row space-x-5">
+            <Input
+              formFieldName="address"
+              placeholder="Wallet Address"
+              autoComplete="off"
+              errorState={Boolean(formErrors.address)}
+              formRegisterOptions={{
+                required: {
+                  value: true,
+                  message: 'Please enter a wallet address.',
+                },
+                validate: (value) => validateAddress(value) || 'Please enter a valid wallet address.',
+              }}
+            />
+            <Button buttonText="Search" />
           </div>
           <div className="text-red-600 text-center">{formErrors.address?.message || String.fromCharCode(160)}</div>
         </form>
