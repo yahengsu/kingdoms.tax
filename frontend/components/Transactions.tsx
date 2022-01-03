@@ -49,10 +49,14 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
                 const res = await fetch(url);
                 const json = await res.json();
                 const txns: Array<Transaction> = json.transactions;
-                console.log(txns);
-                setUserTransactions(userTransactions.concat(txns));
-                setHasMore(json.has_more);
-                setPage(page + 1);
+                if (txns !== null) {
+                    setUserTransactions(userTransactions.concat(txns));
+                    setHasMore(json.has_more);
+                    setPage(page + 1);
+                } else {
+                    setUserTransactions([]);
+                    setHasMore(false);
+                }
             }
         } catch (err) {
             console.log(err);
