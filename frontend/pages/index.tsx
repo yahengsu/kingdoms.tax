@@ -51,7 +51,9 @@ const Home: NextPage = () => {
             />
             <Button buttonText="Search" />
           </div>
-          <div className="text-red-600 text-center">{formErrors.address?.message || String.fromCharCode(160)}</div>
+          <div className="mt-10 text-red-600 text-center">
+            {formErrors.address?.message || String.fromCharCode(160)}
+          </div>
         </form>
       </FormProvider>
     </div>
