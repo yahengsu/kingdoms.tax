@@ -10,7 +10,7 @@ const Txns: NextPage = () => {
   return (
     <div className="flex flex-col font-default w-full min-h-screen items-center justify-center bg-gray-50 py-10">
       <h1 className="font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">
-        DFK transactions for address: {address}
+        DFK token transactions for address: {address}
       </h1>
       <Transactions
         address={typeof address == "string" ? address : ''}
