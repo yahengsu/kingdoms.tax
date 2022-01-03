@@ -122,7 +122,7 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
       </div>
       <span className="px-5 col-span-2">{netAmt}</span>
       <span className="px-5 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center bg-cyan-200">
-        {eventType(props)}
+        {eventType()}
       </span>
       <span className="px-5 col-span-2">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
       <span className="px-5 col-span-2">Coming Soon</span>
