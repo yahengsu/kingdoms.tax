@@ -35,9 +35,12 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
             <a href={"https://explorer.harmony.one/tx/" + txnHash} className="px-5 col-span-1 font-bold">{txnHash.substr(0, 8)}</a>
             <span className="px-5 col-span-2">{new Date(timestamp * 1000).toUTCString()}</span>
             <span className={directionClasses}>{direction}</span>
-            <span className="px-5 col-span-2">{addrs_to_token[tokenAddr]}</span>
+            <div className="px-5 col-span-2">
+                <img className="w-12" src={"/" + addrs_to_token[tokenAddr] + ".png"}/>
+                <span>{addrs_to_token[tokenAddr]}</span>
+            </div>
             <span className="px-5 col-span-2">{netAmt}</span>
-            <span className="px-5 col-span-2">{tokenId ? tokenId : "N/A"}</span>
+            <span className="px-5 col-span-2">{tokenId ? tokenId : "N/A"} </span>
             <span className="px-5 col-span-2">Coming Soon</span>
         </div>
     );
