@@ -8,7 +8,7 @@ const Txns: NextPage = () => {
   console.log({address, startTime, endTime});
 
   return (
-    <div className="flex flex-col font-default w-full min-h-screen items-center justify-center bg-gray-50 py-10">
+    <div className="flex flex-col font-default w-full min-h-screen items-center bg-gray-50 py-10">
       <h1 className="font-bold text-3xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">
         DFK token transactions for address: {address}
       </h1>

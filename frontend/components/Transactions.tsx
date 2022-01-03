@@ -49,6 +49,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
                 const res = await fetch(url);
                 const json = await res.json();
                 const txns: Array<Transaction> = json.transactions;
+                console.log(txns);
                 setUserTransactions(userTransactions.concat(txns));
                 setHasMore(json.has_more);
                 setPage(page + 1);
@@ -67,24 +68,25 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     useEffect(() => { getTxns() }, [address, startTime, endTime]);
 
     return (
-        <InfiniteScroll className="flex flex-col justify-center items-center w-full py-5" next={getTxns} hasMore={hasMore} loader={spinLoader} dataLength={userTransactions.length}>
-            <TransactionHeader/>
-            {userTransactions.map((txn) => (
-                <div className="flex flex-row justify-center py-2 w-full">
-                    <TransactionCard
-                        direction={txn.direction}
-                        netAmount={txn.net_amount}
-                        timestamp={txn.timestamp}
-                        tokenAddr={txn.token_addr}
-                        tokenId={txn.token_id}
-                        tokenType={txn.token_type}
-                        txnHash={txn.txn_hash}
-                    />
-                </div>
-            ))
-
-            }
-        </InfiniteScroll>
+        <div className="flex flex-col justify-center items-center w-full h-full py-5">
+            <TransactionHeader />
+            <InfiniteScroll next={getTxns} hasMore={hasMore} loader={spinLoader} dataLength={userTransactions.length}>
+                {userTransactions.map((txn) => (
+                    <div className="flex flex-row justify-center py-2 w-full">
+                        <TransactionCard
+                            direction={txn.direction}
+                            netAmount={txn.net_amount}
+                            timestamp={txn.timestamp}
+                            tokenAddr={txn.token_addr}
+                            tokenId={txn.token_id}
+                            tokenType={txn.token_type}
+                            txnHash={txn.txn_hash}
+                        />
+                    </div>
+                ))
+                }
+            </InfiniteScroll>
+        </div>
     );
 };
 

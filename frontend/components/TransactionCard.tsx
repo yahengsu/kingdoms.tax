@@ -31,13 +31,12 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
     const directionClasses = direction === "IN" ? directionDefaultClasses + " text-green-500" : directionDefaultClasses + " text-red-500"
 
     return (
-        <div className="grid grid-cols-12 rounded-md py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-5/6 text-lg">
-            <a href={"https://explorer.harmony.one/tx/" + txnHash} className="px-5 col-span-1 font-bold">{txnHash.substr(0, 8)}</a>
+        <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-5/6 text-lg items-center">
+            <a target="_blank" href={"https://explorer.harmony.one/tx/" + txnHash} className="px-5 col-span-1 font-bold hover:text-blue-500 transition duration-200 ease-in-out">{txnHash.substr(0, 8)}</a>
             <span className="px-5 col-span-2">{new Date(timestamp * 1000).toUTCString()}</span>
             <span className={directionClasses}>{direction}</span>
-            <div className="px-5 col-span-2">
-                <img className="w-12" src={"/" + addrs_to_token[tokenAddr] + ".png"}/>
-                <span>{addrs_to_token[tokenAddr]}</span>
+            <div className="px-5 col-span-1">
+                <img className="w-14 transition duration-150" data-bs-toggle="tooltip" data-bs-placement="top" title={addrs_to_token[tokenAddr]} src={"/" + addrs_to_token[tokenAddr] + ".png"}/>
             </div>
             <span className="px-5 col-span-2">{netAmt}</span>
             <span className="px-5 col-span-2">{tokenId ? tokenId : "N/A"} </span>

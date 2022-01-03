@@ -6,7 +6,7 @@ const TransactionCard: React.FC = () => {
             <p className="px-5 col-span-1">Txn Link</p>
             <p className="px-5 col-span-2">Date</p>
             <p className="px-5 col-span-1">Direction</p>
-            <p className="px-5 col-span-2">Token</p>
+            <p className="px-5 col-span-1">Token</p>
             <p className="px-5 col-span-2">Amount</p>
             <p className="px-5 col-span-2">Token Id (NFTs only)</p>
             <p className="px-5 col-span-2">USD Value</p>
