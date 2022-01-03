@@ -72,25 +72,23 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     useEffect(() => { getTxns() }, [address, startTime, endTime]);
 
     return (
-        <div className="flex flex-col justify-center items-center w-full h-full py-5">
+        <InfiniteScroll className="flex flex-col justify-center items-center w-full h-full py-5" next={getTxns} hasMore={hasMore} loader={spinLoader} dataLength={userTransactions.length}>
             <TransactionHeader />
-            <InfiniteScroll next={getTxns} hasMore={hasMore} loader={spinLoader} dataLength={userTransactions.length}>
-                {userTransactions.map((txn) => (
-                    <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>
-                        <TransactionCard
-                            direction={txn.direction}
-                            netAmount={txn.net_amount}
-                            timestamp={txn.timestamp}
-                            tokenAddr={txn.token_addr}
-                            tokenId={txn.token_id}
-                            tokenType={txn.token_type}
-                            txnHash={txn.txn_hash}
-                        />
-                    </div>
-                ))
-                }
-            </InfiniteScroll>
-        </div>
+            {userTransactions.map((txn) => (
+                <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>
+                    <TransactionCard
+                        direction={txn.direction}
+                        netAmount={txn.net_amount}
+                        timestamp={txn.timestamp}
+                        tokenAddr={txn.token_addr}
+                        tokenId={txn.token_id}
+                        tokenType={txn.token_type}
+                        txnHash={txn.txn_hash}
+                    />
+                </div>
+            ))
+            }
+        </InfiniteScroll>
     );
 };
 
