@@ -17,7 +17,7 @@ const Input: React.FC<InputProps & InputHTMLAttributes<HTMLInputElement>> = ({
   return (
     <input
       className={`appearance-none rounded-md w-full p-2 border-2 ${
-        errorState ? 'border-red-500' : 'border-gray-200 focus:border-cyan-300'
+        errorState ? 'border-red-500' : 'border-gray-200 focus:border-cyan-400'
       } placeholder-gray-500 focus:outline-none`}
       {...register(formFieldName, formRegisterOptions)}
       {...props}
