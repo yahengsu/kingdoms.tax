@@ -92,6 +92,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
             tokenId={txn.token_id}
             tokenType={txn.token_type}
             txnHash={txn.txn_hash}
+            counterparty={txn.counterparty}
           />
         </div>
       ))}

@@ -1,6 +1,13 @@
 import React from 'react';
 
-import { addrs_to_token, decimals } from '../constants/constants';
+import {
+  addrs_to_token,
+  decimals,
+  LP_PAIRS,
+  OTHER_LP_PAIRS,
+  OTHER_ADDRESSES,
+  QUEST_TOKEN_ADDRESSES,
+} from '../constants/constants';
 import { fromUnixTime } from 'date-fns';
 import { format } from 'date-fns-tz';
 
@@ -15,15 +22,63 @@ type CardProps = {
   tokenId: string; // Hex String
   tokenType: Token;
   txnHash: string; // Hex String
+  counterparty: string; // Hex String
 };
 
 const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
-  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash } = props;
+  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash, counterparty } = props;
   let netAmt = '1';
   if (tokenType === 'ERC20') {
     const weiAmt = parseFloat(parseInt(netAmount, 16).toString());
     netAmt = (weiAmt / Math.pow(10, decimals[tokenAddr])).toFixed(Math.min(4, decimals[tokenAddr]));
   }
+
+  const eventType = () => {
+    if (
+      // minted from quest
+      direction === 'IN' &&
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      QUEST_TOKEN_ADDRESSES.includes(tokenAddr)
+    ) {
+      return 'QUEST';
+    } else if (
+      // selling to gold vendor
+      direction === 'OUT' &&
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      QUEST_TOKEN_ADDRESSES.includes(tokenAddr) &&
+      tokenAddr !== OTHER_ADDRESSES.DFK_SHVAS_ADDRESS
+    ) {
+      return 'VENDOR';
+    } else if (
+      // receiving gold from gold vendor
+      direction === 'IN' &&
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.DFK_GOLD_ADDRESS
+    ) {
+      return 'VENDOR';
+    } else if (
+      // burning shvas to level
+      direction === 'OUT' &&
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.DFK_SHVAS_ADDRESS
+    ) {
+      return 'LEVEL';
+    } else if (LP_PAIRS.includes(counterparty) || OTHER_LP_PAIRS.includes(counterparty)) {
+      // sending/receiving from an LP address -> DEX Swap
+      return 'DEX';
+    } else if (counterparty === OTHER_ADDRESSES.BANK_ADDRESS && tokenAddr === OTHER_ADDRESSES.JEWEL_ADDRESS) {
+      // sending/receiving JEWEL from BANK
+      return 'BANK';
+    } else if (counterparty === OTHER_ADDRESSES.NULL_ADDRESS && tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS) {
+      // sending/receiving xJEWEL from BANK
+      return 'BANK';
+    } else if (tokenType === 'ERC721') {
+      // ERC721 means HERO txn
+      return 'HERO';
+    }
+    // if unknown return TRANSFER
+    return 'TRANSFER';
+  };
 
   if (direction === 'IN') {
     netAmt = '+ ' + netAmt;
@@ -69,6 +124,9 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
         />
       </div>
       <span className="px-5 col-span-2">{netAmt}</span>
+      <span className="px-5 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center bg-cyan-200">
+        {eventType()}
+      </span>
       <span className="px-5 col-span-2">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
       <span className="px-5 col-span-2">Coming Soon</span>
     </div>

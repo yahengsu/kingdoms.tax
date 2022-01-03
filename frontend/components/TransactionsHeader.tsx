@@ -9,6 +9,7 @@ const TransactionCard: React.FC = () => {
       <p className="px-5 col-span-1">Direction</p>
       <p className="px-5 col-span-1">Token</p>
       <p className="px-5 col-span-2">Amount</p>
+      <p className="px-5 col-span-1">Type</p>
       <p className="px-5 col-span-2" data-bs-toggle="tooltip" data-bs-placement="top" title="NFTs only">
         Token ID
       </p>
