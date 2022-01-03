@@ -7,7 +7,7 @@ type ButtonProps = {
 const Button: React.FC<ButtonProps & ButtonHTMLAttributes<HTMLButtonElement>> = ({ buttonText, ...props }) => {
   return (
     <button
-      className="py-2 px-4 border border-transparent rounded-md text-white bg-black hover:bg-white hover:border-black hover:text-black"
+      className="py-2 px-4 border-2 border-transparent rounded-md text-white bg-black hover:bg-white hover:border-black hover:text-black"
       {...props}
     >
       {buttonText}

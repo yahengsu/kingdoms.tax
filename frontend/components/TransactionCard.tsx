@@ -1,6 +1,8 @@
 import React from 'react';
-import Image from 'next/image';
+
 import { addrs_to_token, decimals } from '../constants/constants';
+import { fromUnixTime } from 'date-fns';
+import { format } from 'date-fns-tz';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -35,6 +37,11 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
       ? directionDefaultClasses + ' text-green-500 bg-green-200'
       : directionDefaultClasses + ' text-red-500 bg-red-200';
 
+  const txnDate = fromUnixTime(timestamp);
+  console.log(timestamp);
+  const dateString = format(txnDate, 'd MMM yyyy');
+  const timeString = format(txnDate, 'hh:mm:ss a z');
+
   return (
     <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-5/6 text-lg items-center">
       <a
@@ -45,7 +52,11 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
       >
         {txnHash.substr(0, 8)}
       </a>
-      <span className="px-5 col-span-2">{new Date(timestamp * 1000).toUTCString()}</span>
+      <span className="px-5 col-span-2">
+        {dateString}
+        <br />
+        {timeString}
+      </span>
       <div className={directionClasses}>{direction}</div>
       <div className="px-5 col-span-1">
         <img
