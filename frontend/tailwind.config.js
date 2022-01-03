@@ -3,7 +3,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        default: ['Inter'],
+        default: ['Poppins'],
       },
     },
   },
