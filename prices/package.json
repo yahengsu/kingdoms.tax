@@ -1,0 +1,20 @@
+{
+  "name": "price_data",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/pg-pool": "^2.0.3",
+    "axios": "^0.24.0",
+    "dotenv": "^10.0.0",
+    "ethers": "^5.5.2",
+    "node-fetch": "^2.6.6",
+    "pg": "^8.7.1",
+    "pg-native": "^3.0.0"
+  }
+}
