@@ -35,12 +35,14 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
 
   const eventType = () => {
     if (
+      // minted from quest
       direction === 'IN' &&
       counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
       QUEST_TOKEN_ADDRESSES.includes(tokenAddr)
     ) {
       return 'QUEST';
     } else if (
+      // selling to gold vendor
       direction === 'OUT' &&
       counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
       QUEST_TOKEN_ADDRESSES.includes(tokenAddr) &&
@@ -48,36 +50,33 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
     ) {
       return 'VENDOR';
     } else if (
+      // receiving gold from gold vendor
       direction === 'IN' &&
       counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
       tokenAddr === OTHER_ADDRESSES.DFK_GOLD_ADDRESS
     ) {
       return 'VENDOR';
     } else if (
+      // burning shvas to level
       direction === 'OUT' &&
       counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
       tokenAddr === OTHER_ADDRESSES.DFK_SHVAS_ADDRESS
     ) {
       return 'LEVEL';
     } else if (LP_PAIRS.includes(counterparty) || OTHER_LP_PAIRS.includes(counterparty)) {
+      // sending/receiving from an LP address -> DEX Swap
       return 'DEX';
     } else if (counterparty === OTHER_ADDRESSES.BANK_ADDRESS && tokenAddr === OTHER_ADDRESSES.JEWEL_ADDRESS) {
+      // sending/receiving JEWEL from BANK
       return 'BANK';
-    } else if (
-      direction === 'IN' &&
-      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
-      tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS
-    ) {
-      return 'BANK';
-    } else if (
-      direction === 'OUT' &&
-      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
-      tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS
-    ) {
+    } else if (counterparty === OTHER_ADDRESSES.NULL_ADDRESS && tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS) {
+      // sending/receiving xJEWEL from BANK
       return 'BANK';
     } else if (tokenType === 'ERC721') {
+      // ERC721 means HERO txn
       return 'HERO';
     }
+    // if unknown return TRANSFER
     return 'TRANSFER';
   };
 

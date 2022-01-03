@@ -113,7 +113,7 @@ const LP_PAIRS = [
   '0x5898e31d82afdb1d65edefe0601714a60f461201', // dfksilverfin
   '0x7d65edc0e1449d13be1141ce29e5a984d04aa374', // dfkswfthsl
   '0x399d025fe22203357da9a5c9ff9888b7c25cc899', // dfkgldvn
-  '0x2e7276584897a099D07b118FAd51ad8c169F01ee', // dfkrgwd
+  '0x2e7276584897a099d07b118fad51ad8c169f01ee', // dfkrgwd
   '0x0bc8b60bcc36f39d77922d554424e1944ec7ca61', // dfkrdlf
   '0xc5d215ff592bea454146135542e72e0ae520406f', // dfkredgill
   '0x92ecb67043aac4b876cdf2a5f98b8aefafe7cfc6', // dfkdrkwd
@@ -135,6 +135,10 @@ const OTHER_LP_PAIRS = [
   '0x0acce15d05b4ba4dbedfd7afd51ea4fa1592f75e', // 1WBTC
   '0x7f89b5f33138c89fad4092a7c079973c95362d53', // FTM
   '0xe01502db14929b7733e7112e173c3bcf566f996e', // BUSD
+  '0xb6e9754b90b338ccb2a74fa31de48ad89f65ec5e', // LUNA
+  '0xe7d0116dd1dbbba2efbad58f097d1ffbbedc4923', // bscBNB
+  '0x751606585fcaa73bf92cf823b7b6d8a0398a1c99', // MIS
+  '0x3733062773b24f9bafa1e8f2e5a352976f008a95', // XYA
 ];
 const QUEST_TOKEN_ADDRESSES = [
   '0x72cb10c6bfa5624dd07ef608027e366bd690048f', // jewel
