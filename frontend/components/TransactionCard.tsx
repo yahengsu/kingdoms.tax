@@ -31,7 +31,7 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
     netAmt = '- ' + netAmt;
   }
 
-  const directionDefaultClasses = 'px-1 col-span-1 rounded-lg font-medium w-1/2 justify-self-center text-center';
+  const directionDefaultClasses = 'px-3 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center';
   const directionClasses =
     direction === 'IN'
       ? directionDefaultClasses + ' text-green-500 bg-green-200'
