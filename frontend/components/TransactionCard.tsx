@@ -3,6 +3,7 @@ import React from 'react';
 import { addrs_to_token, decimals } from '../constants/constants';
 import { fromUnixTime } from 'date-fns';
 import { format } from 'date-fns-tz';
+import constants from '../constants';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -15,15 +16,66 @@ type CardProps = {
   tokenId: string; // Hex String
   tokenType: Token;
   txnHash: string; // Hex String
+  counterparty: string; // Hex String
 };
 
 const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
-  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash } = props;
+  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash, counterparty } = props;
   let netAmt = '1';
   if (tokenType === 'ERC20') {
     const weiAmt = parseFloat(parseInt(netAmount, 16).toString());
     netAmt = (weiAmt / Math.pow(10, decimals[tokenAddr])).toFixed(Math.min(4, decimals[tokenAddr]));
   }
+
+  const eventType = () => {
+    if (
+      direction === 'IN' &&
+      counterparty === constants.NULL_ADDRESS &&
+      constants.QUEST_TOKEN_ADDRESSES.includes(tokenAddr)
+    ) {
+      return 'QUEST';
+    } else if (
+      direction === 'OUT' &&
+      counterparty === constants.NULL_ADDRESS &&
+      constants.QUEST_TOKEN_ADDRESSES.includes(tokenAddr) &&
+      tokenAddr !== constants.DFK_SHVAS_ADDRESS
+    ) {
+      return 'VENDOR';
+    } else if (
+      direction === 'IN' &&
+      counterparty === constants.NULL_ADDRESS &&
+      tokenAddr === constants.DFK_GOLD_ADDRESS
+    ) {
+      return 'VENDOR';
+    } else if (
+      direction === 'OUT' &&
+      counterparty === constants.NULL_ADDRESS &&
+      tokenAddr === constants.DFK_SHVAS_ADDRESS
+    ) {
+      return 'LEVEL';
+    } else if (constants.LP_PAIRS.includes(counterparty)) {
+      return 'DEX-DFK';
+    } else if (constants.OTHER_LP_PAIRS.includes(counterparty)) {
+      return 'DEX-OTHER';
+    } else if (counterparty === constants.BANK_ADDRESS && tokenAddr === constants.JEWEL_ADDRESS) {
+      return 'BANK';
+    } else if (
+      direction === 'IN' &&
+      counterparty === constants.NULL_ADDRESS &&
+      tokenAddr === constants.XJEWEL_ADDRESS
+    ) {
+      return 'BANK';
+    } else if (
+      direction === 'OUT' &&
+      counterparty === constants.NULL_ADDRESS &&
+      tokenAddr === constants.XJEWEL_ADDRESS
+    ) {
+      return 'BANK';
+    } else if (tokenType === 'ERC721') {
+      return 'HERO';
+    }
+    return 'TRANSFER';
+  };
 
   if (direction === 'IN') {
     netAmt = '+ ' + netAmt;
@@ -69,6 +121,9 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
         />
       </div>
       <span className="px-5 col-span-2">{netAmt}</span>
+      <span className="px-5 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center bg-cyan-200">
+        {eventType(props)}
+      </span>
       <span className="px-5 col-span-2">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
       <span className="px-5 col-span-2">Coming Soon</span>
     </div>
