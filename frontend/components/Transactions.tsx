@@ -72,7 +72,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
             <TransactionHeader />
             <InfiniteScroll next={getTxns} hasMore={hasMore} loader={spinLoader} dataLength={userTransactions.length}>
                 {userTransactions.map((txn) => (
-                    <div className="flex flex-row justify-center py-2 w-full">
+                    <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>
                         <TransactionCard
                             direction={txn.direction}
                             netAmount={txn.net_amount}
