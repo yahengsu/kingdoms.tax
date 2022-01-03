@@ -36,8 +36,8 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
             <span className="px-5 col-span-2">{new Date(timestamp * 1000).toUTCString()}</span>
             <span className={directionClasses}>{direction}</span>
             <span className="px-5 col-span-2">{addrs_to_token[tokenAddr]}</span>
-            <span className="px-5 col-span-2">{tokenId ? tokenId : "N/A"}</span>
             <span className="px-5 col-span-2">{netAmt}</span>
+            <span className="px-5 col-span-2">{tokenId ? tokenId : "N/A"}</span>
             <span className="px-5 col-span-2">Coming Soon</span>
         </div>
     );
