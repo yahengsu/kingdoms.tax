@@ -1,9 +1,7 @@
 require("dotenv").config();
-const { ethers } = require("ethers");
 const { Client } = require("pg");
 const axios = require("axios");
 var fs = require("fs");
-var { graphql, buildSchema } = require("graphql");
 const constants = require("./constants");
 
 const LP_PAIRS = Object.entries(constants.lp.JEWEL);
