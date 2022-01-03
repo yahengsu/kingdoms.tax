@@ -1,8 +1,9 @@
 import { NextPage } from 'next';
-import { useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { useRouter } from 'next/router';
+import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
+import Web3 from 'web3';
+
 import Button from '../components/Button';
-import DateTimePicker from '../components/DateTimePicker';
 import Input from '../components/Input';
 
 type WalletFormValues = {
@@ -12,11 +13,20 @@ type WalletFormValues = {
 const Home: NextPage = () => {
   const formMethods = useForm<WalletFormValues>();
   const formErrors = formMethods.formState.errors;
+  const router = useRouter();
 
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
+  const validateAddress = (address: string) => {
+    try {
+      Web3.utils.toChecksumAddress(address);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
 
-  const onSubmit = () => {};
+  const onSubmit: SubmitHandler<WalletFormValues> = ({ address }) => {
+    router.push(`/txns/${address}`);
+  };
 
   return (
     <div className="flex flex-col font-default w-full min-h-screen items-center justify-center bg-gray-50">
@@ -24,24 +34,28 @@ const Home: NextPage = () => {
         penis
       </h1>
       <FormProvider {...formMethods}>
-        <form className="mt-10 w-1/2" onSubmit={formMethods.handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-12 gap-3 w-full">
-            <div className="col-span-7">
-              <Input formFieldName="address" placeholder="Wallet Address" autoComplete="off" />
-            </div>
-            <div className="col-span-2">
-              <DateTimePicker
-                selectedDate={startDate}
-                onChange={(date) => setStartDate(date)}
-                start
-                startDate={startDate}
-                endDate={endDate}
+        <form className="mt-10 w-1/3" onSubmit={formMethods.handleSubmit(onSubmit)}>
+          <div className="grid grid-cols-8 gap-3 w-full mb-10">
+            <div className="col-span-6">
+              <Input
+                formFieldName="address"
+                placeholder="Wallet Address"
+                autoComplete="off"
+                errorState={Boolean(formErrors.address)}
+                formRegisterOptions={{
+                  required: {
+                    value: true,
+                    message: 'Please enter a wallet address.',
+                  },
+                  validate: (value) => validateAddress(value) || 'Please enter a valid wallet address.',
+                }}
               />
             </div>
-            <div className="col-span-1">
+            <div className="col-span-2">
               <Button buttonText="Search" />
             </div>
           </div>
+          <div className="text-red-600 text-center">{formErrors.address?.message || String.fromCharCode(160)}</div>
         </form>
       </FormProvider>
     </div>
