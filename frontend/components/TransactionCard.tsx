@@ -1,9 +1,15 @@
 import React from 'react';
 
-import { addrs_to_token, decimals } from '../constants/constants';
+import {
+  addrs_to_token,
+  decimals,
+  LP_PAIRS,
+  OTHER_LP_PAIRS,
+  OTHER_ADDRESSES,
+  QUEST_TOKEN_ADDRESSES,
+} from '../constants/constants';
 import { fromUnixTime } from 'date-fns';
 import { format } from 'date-fns-tz';
-import constants from '../constants';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -30,45 +36,43 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
   const eventType = () => {
     if (
       direction === 'IN' &&
-      counterparty === constants.NULL_ADDRESS &&
-      constants.QUEST_TOKEN_ADDRESSES.includes(tokenAddr)
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      QUEST_TOKEN_ADDRESSES.includes(tokenAddr)
     ) {
       return 'QUEST';
     } else if (
       direction === 'OUT' &&
-      counterparty === constants.NULL_ADDRESS &&
-      constants.QUEST_TOKEN_ADDRESSES.includes(tokenAddr) &&
-      tokenAddr !== constants.DFK_SHVAS_ADDRESS
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      QUEST_TOKEN_ADDRESSES.includes(tokenAddr) &&
+      tokenAddr !== OTHER_ADDRESSES.DFK_SHVAS_ADDRESS
     ) {
       return 'VENDOR';
     } else if (
       direction === 'IN' &&
-      counterparty === constants.NULL_ADDRESS &&
-      tokenAddr === constants.DFK_GOLD_ADDRESS
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.DFK_GOLD_ADDRESS
     ) {
       return 'VENDOR';
     } else if (
       direction === 'OUT' &&
-      counterparty === constants.NULL_ADDRESS &&
-      tokenAddr === constants.DFK_SHVAS_ADDRESS
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.DFK_SHVAS_ADDRESS
     ) {
       return 'LEVEL';
-    } else if (constants.LP_PAIRS.includes(counterparty)) {
-      return 'DEX-DFK';
-    } else if (constants.OTHER_LP_PAIRS.includes(counterparty)) {
-      return 'DEX-OTHER';
-    } else if (counterparty === constants.BANK_ADDRESS && tokenAddr === constants.JEWEL_ADDRESS) {
+    } else if (LP_PAIRS.includes(counterparty) || OTHER_LP_PAIRS.includes(counterparty)) {
+      return 'DEX';
+    } else if (counterparty === OTHER_ADDRESSES.BANK_ADDRESS && tokenAddr === OTHER_ADDRESSES.JEWEL_ADDRESS) {
       return 'BANK';
     } else if (
       direction === 'IN' &&
-      counterparty === constants.NULL_ADDRESS &&
-      tokenAddr === constants.XJEWEL_ADDRESS
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS
     ) {
       return 'BANK';
     } else if (
       direction === 'OUT' &&
-      counterparty === constants.NULL_ADDRESS &&
-      tokenAddr === constants.XJEWEL_ADDRESS
+      counterparty === OTHER_ADDRESSES.NULL_ADDRESS &&
+      tokenAddr === OTHER_ADDRESSES.XJEWEL_ADDRESS
     ) {
       return 'BANK';
     } else if (tokenType === 'ERC721') {
