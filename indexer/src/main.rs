@@ -136,7 +136,7 @@ async fn index_txns_to_end_block(
     erc721s: Vec<H160>,
     provider: Arc<Provider<Http>>,
 ) -> Result<()> {
-    let last_block = provider.get_block_number().await?.as_u64();
+    let mut last_block = provider.get_block_number().await?.as_u64();
 
     let erc20 = Erc20::Erc20::new(H160::zero(), provider.clone());
     let mut erc20_transfer_filter = erc20.transfer_filter();
@@ -152,7 +152,7 @@ async fn index_txns_to_end_block(
 
     let mut backoff_mult: u64 = 1;
 
-    while start_block < last_block - BLOCKS_PER_REQ {
+    loop {
         // Set new selection on filters
         let selection = start_block..start_block + BLOCKS_PER_REQ;
         erc721_transfer_filter.filter = erc721_transfer_filter.filter.select(selection.clone());
@@ -225,8 +225,13 @@ async fn index_txns_to_end_block(
                 continue;
             }
         }
+
+        // If we don't have enough new blocks to query, spin/wait for more blocks
+        while start_block >= last_block - BLOCKS_PER_REQ {
+            sleep(tokio::time::Duration::from_secs(10)).await;
+            last_block = provider.get_block_number().await?.as_u64();
+        }
     }
-    Ok(())
 }
 
 async fn get_block_timestamps(
