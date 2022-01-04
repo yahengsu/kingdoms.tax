@@ -1,5 +1,4 @@
 import React from 'react';
-import { addrs_to_token } from '../constants/constants';
 
 const TransactionCard: React.FC = () => {
   return (
