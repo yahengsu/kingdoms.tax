@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import TransactionCard from './TransactionCard';
 import TransactionHeader from './TransactionsHeader';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import ReactLoading from 'react-loading';
+import CSVModal from './CSVModal';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -13,7 +14,21 @@ type TransactionsProps = {
   endTime: string;
 };
 
-type Transaction = {
+export type TxnRequestParams = {
+  address: string;
+  startTime: string;
+  endTime: string;
+  page: string;
+  count: string;
+};
+
+export type TxnResponse = {
+  transactions: Array<Transaction>;
+  total: number;
+  has_more: boolean;
+};
+
+export type Transaction = {
   account: string;
   counterparty: string;
   block_number: number;
@@ -27,6 +42,14 @@ type Transaction = {
   log_index: string;
 };
 
+export const requestTxns = async (requestParams: TxnRequestParams): Promise<TxnResponse> => {
+  const searchParams = new URLSearchParams(requestParams);
+  const url = 'https://backend-jtcrtmomna-uc.a.run.app/transactions?' + searchParams.toString();
+  const res = await fetch(url);
+  const json = await res.json();
+  return json;
+};
+
 const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
   const { address, startTime, endTime } = props;
   const numToFetch = '25';
@@ -37,18 +60,15 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
   const getTxns = async () => {
     try {
       if (address) {
-        const paramsObj = {
+        const paramsObj: TxnRequestParams = {
           address: address,
           startTime: startTime,
           endTime: endTime,
           page: page.toString(),
           count: numToFetch,
         };
-        const searchParams = new URLSearchParams(paramsObj);
-        const url = 'https://backend-jtcrtmomna-uc.a.run.app/transactions?' + searchParams.toString();
-        const res = await fetch(url);
-        const json = await res.json();
-        const txns: Array<Transaction> = json.transactions;
+        const json = await requestTxns(paramsObj);
+        const txns = json.transactions;
         if (txns !== null) {
           setUserTransactions(userTransactions.concat(txns));
           setHasMore(json.has_more);
@@ -81,6 +101,11 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
       loader={spinLoader}
       dataLength={userTransactions.length}
     >
+      <CSVModal
+        address={address}
+        startTime={startTime}
+        endTime={endTime}
+      />
       <TransactionHeader />
       {userTransactions.map((txn) => (
         <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>
