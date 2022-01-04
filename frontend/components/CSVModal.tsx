@@ -52,7 +52,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
 
       ret.push({
         txnHash: txn.txn_hash,
-        date: new Date(txn.timestamp).toUTCString(),
+        date: new Date(txn.timestamp * 1000).toUTCString(),
         tokenAddr: txn.token_addr,
         netAmount: netAmt,
       });
@@ -125,6 +125,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
                       onClick={() => setShowModal(false)}
                       data={downloadedTxns}
                       headers={headers}
+                      filename={'dfk-txns-' + address + '.csv'}
                     >
                       Download
                     </CSVLink>
