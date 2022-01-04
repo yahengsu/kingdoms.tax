@@ -254,4 +254,8 @@ async function run() {
   console.log("Finished running all tasks");
 }
 
-run();
+//update feeds every 2 hours
+const TIMEOUT = 1000 * 60 * 60 * 2;
+setTimeout(() => {
+  run();
+}, TIMEOUT);
