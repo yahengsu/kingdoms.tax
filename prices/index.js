@@ -21,7 +21,7 @@ async function getPairData(pair) {
   while (true) {
     const query = `
     {
-      pairHourDatas(first: 1000 skip: ${skip} where: {pair: "${pairAddress}"}) {
+      pairHourDatas(first: 1000 skip: ${skip} where: {pair: "${pairAddress.toLowerCase()}"}) {
         hourStartUnix
         reserve0
         reserve1
@@ -82,7 +82,7 @@ async function getJewelUsdPrices() {
 
   const query = `
     {
-      pairHourDatas(where: {pair: "${JEWEL_USDC_PAIR_ADDRESS}", hourStartUnix_lt: 1632452603}) {
+      pairHourDatas(where: {pair: "${JEWEL_USDC_PAIR_ADDRESS.toLowerCase()}", hourStartUnix_lt: 1632452603}) {
         hourStartUnix
         reserve0
         reserve1

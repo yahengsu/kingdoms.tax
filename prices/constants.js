@@ -62,7 +62,7 @@ module.exports = {
         decimals: 0,
       },
       DFKRGWD: {
-        address: "0x2e7276584897a099D07b118FAd51ad8c169F01ee",
+        address: "0x2e7276584897a099d07b118fad51ad8c169f01ee",
         token: "0x043F9bd9Bb17dFc90dE3D416422695Dd8fa44486",
         inverse: true,
         decimals: 0,
