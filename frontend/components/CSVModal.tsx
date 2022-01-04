@@ -4,12 +4,12 @@ import { requestTxns } from './Transactions';
 import ProgressBar from './ProgressBar';
 import { CSVLink } from 'react-csv';
 import Button from './Button';
-import { decimals } from '../constants/constants';
+import { decimals, addrs_to_token } from '../constants/constants';
 
 type ExportProps = {
   address: string;
-  startTime: string;
-  endTime: string;
+  startTime: string; //Epoch millis
+  endTime: string; //Epoch millis
 };
 
 type CSVTxns = {
@@ -22,6 +22,14 @@ type CSVTxns = {
 const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
   const [showModal, setShowModal] = React.useState(false);
   const { address, startTime, endTime } = props;
+  let startTimeSeconds = '';
+  let endTimeSeconds = '';
+  if (startTime !== '') {
+    startTimeSeconds = (parseInt(startTime) / 1000).toString();
+  }
+  if (endTime !== '') {
+    endTimeSeconds = (parseInt(endTime) / 1000).toString();
+  }
   const numToFetch = '100';
   const [total, setTotal] = React.useState(0);
   const [progress, setProgress] = React.useState(0);
@@ -32,6 +40,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
     { label: 'Transaction Hash', key: 'txnHash' },
     { label: 'Date', key: 'date' },
     { label: 'Token Address', key: 'tokenAddr' },
+    { label: 'Token Name', key: 'tokenName' },
     { label: 'Net Token Amount', key: 'netAmount' },
   ];
 
@@ -52,8 +61,9 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
 
       ret.push({
         txnHash: txn.txn_hash,
-        date: new Date(txn.timestamp).toUTCString(),
+        date: new Date(txn.timestamp * 1000).toUTCString(),
         tokenAddr: txn.token_addr,
+        tokenName: addrs_to_token[txn.token_addr],
         netAmount: netAmt,
       });
     }
@@ -65,8 +75,8 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
       if (address) {
         const paramsObj: TxnRequestParams = {
           address: address,
-          startTime: startTime,
-          endTime: endTime,
+          startTime: startTimeSeconds,
+          endTime: endTimeSeconds,
           page: page.toString(),
           count: numToFetch,
         };
@@ -93,7 +103,16 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
     if (showModal && hasMore) {
       getMoreTxns();
     }
-  }, [address, startTime, endTime, progress, showModal]);
+  }, [progress, showModal]);
+
+  useEffect(() => {
+    // Reset everything if user changes startTime, endTime, or address
+    setTotal(0);
+    setProgress(0);
+    setPage(0);
+    setHasMore(true);
+    setDownloadedTxns([]);
+  }, [address, startTime, endTime]);
 
   return (
     <>
