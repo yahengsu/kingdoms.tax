@@ -139,3 +139,85 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 	}
 	w.Header().Set("Content-Type", "application/json")
 }
+
+type GetQuestsCountResponse struct {
+	QuestsCounts []models.QuestReward `json:"questsCounts"`
+}
+
+func (b *BaseController) GetQuestRewardCounts(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	startTime := query.Get("startTime")
+	endTime := query.Get("endTime")
+	address := query.Get("address")
+
+	response := GetQuestsCountResponse{}
+
+	var questsCounts []models.QuestReward
+	var err error
+	if startTime == "" && endTime == "" {
+		questsCounts, err = b.db.GetQuestRewards(address)
+		if err != nil {
+			log.Errorf("error getting transactions: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	} else if startTime == "" {
+		endTimeInt, err := strconv.Atoi(endTime)
+		if err != nil {
+			log.Errorf("error parsing end time: %v", err)
+			http.Error(w, "invalid endTime in request", http.StatusBadRequest)
+			return
+		}
+
+		questsCounts, err = b.db.GetQuestRewardsUpTo(address, endTimeInt)
+		if err != nil {
+			log.Errorf("error getting transactions up to: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	} else if endTime == "" {
+		startTimeInt, err := strconv.Atoi(startTime)
+		if err != nil {
+			log.Errorf("error parsing start time: %v", err)
+			http.Error(w, "invalid startTime in request", http.StatusBadRequest)
+			return
+		}
+
+		questsCounts, err = b.db.GetQuestRewardsStartingFrom(address, startTimeInt)
+		if err != nil {
+			log.Errorf("error getting transactions starting from: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		startTimeInt, err := strconv.Atoi(startTime)
+		if err != nil {
+			log.Errorf("error parsing start time: %v", err)
+			http.Error(w, "invalid startTime in request", http.StatusBadRequest)
+			return
+		}
+
+		endTimeInt, err := strconv.Atoi(endTime)
+		if err != nil {
+			log.Errorf("error parsing end time: %v", err)
+			http.Error(w, "invalid endTime in request", http.StatusBadRequest)
+			return
+		}
+
+		questsCounts, err = b.db.GetQuestRewardsInRange(address, startTimeInt, endTimeInt)
+		if err != nil {
+			log.Errorf("error getting transactions: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	}
+	response.QuestsCounts = questsCounts
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Errorf("error encoding response: %v", err)
+		http.Error(w, "error encoding response", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+}

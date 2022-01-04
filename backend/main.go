@@ -7,6 +7,7 @@ import (
 
 	"dfk-txns-be/controllers"
 	"dfk-txns-be/db"
+
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -49,6 +50,7 @@ func main() {
 	// Register routes
 	r := mux.NewRouter()
 	r.HandleFunc("/transactions", server.GetTransactions).Methods("GET")
+	r.HandleFunc("/questcounts", server.GetQuestRewardCounts).Methods("GET")
 	r.HandleFunc("/transactions", controllers.AuthenticateRoute(server.AddTransactions)).Methods("POST")
 
 	// Run server

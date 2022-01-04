@@ -188,6 +188,142 @@ func (db *Database) GetTransactionsStartingFrom(account string, startTime, offse
 	return txns, nil
 }
 
+func (db *Database) GetQuestRewards(account string) ([]models.QuestReward, error) {
+	var questCounts []models.QuestReward
+
+	query := `
+		SELECT token_address, COUNT(*) 
+		FROM Transaction 
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' 
+		GROUP BY token_address;
+	`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account))
+	if err != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var quest models.QuestReward
+		err := rows.Scan(&quest.TokenAddr, &quest.Count)
+
+		if err != nil {
+			return questCounts, fmt.Errorf("failed to scan questCounts: %v", err)
+		}
+
+		questCounts = append(questCounts, quest)
+	}
+
+	if rows.Err() != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+
+	return questCounts, nil
+}
+
+func (db *Database) GetQuestRewardsInRange(account string, startTime, endTime int) ([]models.QuestReward, error) {
+	var questCounts []models.QuestReward
+
+	query := `
+		SELECT token_address, COUNT(*) 
+		FROM Transaction 
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp BETWEEN $2 AND $3
+		GROUP BY token_address;
+	`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime)
+	if err != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var quest models.QuestReward
+		err := rows.Scan(&quest.TokenAddr, &quest.Count)
+
+		if err != nil {
+			return questCounts, fmt.Errorf("failed to scan questCounts: %v", err)
+		}
+
+		questCounts = append(questCounts, quest)
+	}
+
+	if rows.Err() != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+
+	return questCounts, nil
+}
+
+func (db *Database) GetQuestRewardsUpTo(account string, endTime int) ([]models.QuestReward, error) {
+	var questCounts []models.QuestReward
+
+	query := `
+		SELECT token_address, COUNT(*) 
+		FROM Transaction 
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp <= $2
+		GROUP BY token_address;
+	`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), endTime)
+	if err != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var quest models.QuestReward
+		err := rows.Scan(&quest.TokenAddr, &quest.Count)
+
+		if err != nil {
+			return questCounts, fmt.Errorf("failed to scan questCounts: %v", err)
+		}
+
+		questCounts = append(questCounts, quest)
+	}
+
+	if rows.Err() != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+
+	return questCounts, nil
+}
+
+func (db *Database) GetQuestRewardsStartingFrom(account string, startTime int) ([]models.QuestReward, error) {
+	var questCounts []models.QuestReward
+
+	query := `
+		SELECT token_address, COUNT(*) 
+		FROM Transaction 
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp >= $2
+		GROUP BY token_address;
+	`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime)
+	if err != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var quest models.QuestReward
+		err := rows.Scan(&quest.TokenAddr, &quest.Count)
+
+		if err != nil {
+			return questCounts, fmt.Errorf("failed to scan questCounts: %v", err)
+		}
+
+		questCounts = append(questCounts, quest)
+	}
+
+	if rows.Err() != nil {
+		return questCounts, fmt.Errorf("failed to get questCounts: %v", err)
+	}
+
+	return questCounts, nil
+}
+
 // AddTransaction adds a transaction to the database.
 func (db *Database) AddTransaction(txn models.Transaction) error {
 	query := `INSERT INTO Transaction (account, counterparty, block_num, direction, net_amount, timestamp, token_address, token_id, token_type, txn_hash, log_index) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
