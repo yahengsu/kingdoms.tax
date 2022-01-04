@@ -59,11 +59,10 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 
 	response := GetTransactionsResponse{}
 
-	selectAll := startTime == "" && endTime == ""
 	offset := page * count
 
 	var txns []models.Transaction
-	if selectAll {
+	if startTime == "" && endTime == "" {
 		response.Total, err = b.db.GetNumTransactions(address)
 		if err != nil {
 			log.Errorf("error getting total transaction count: %v", err)
@@ -75,6 +74,50 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 		txns, err = b.db.GetTransactions(address, offset, count)
 		if err != nil {
 			log.Errorf("error getting transactions: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	} else if startTime == "" {
+		endTimeInt, err := strconv.Atoi(endTime)
+		if err != nil {
+			log.Errorf("error parsing end time: %v", err)
+			http.Error(w, "invalid endTime in request", http.StatusBadRequest)
+			return
+		}
+
+		response.Total, err = b.db.GetNumTransactionsUpTo(address, endTimeInt)
+		if err != nil {
+			log.Errorf("error getting transaction count up to: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+		response.HasMore = response.Total > offset+count
+
+		txns, err = b.db.GetTransactionsUpTo(address, endTimeInt, offset, count)
+		if err != nil {
+			log.Errorf("error getting transactions up to: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+	} else if endTime == "" {
+		startTimeInt, err := strconv.Atoi(startTime)
+		if err != nil {
+			log.Errorf("error parsing start time: %v", err)
+			http.Error(w, "invalid startTime in request", http.StatusBadRequest)
+			return
+		}
+
+		response.Total, err = b.db.GetNumTransactionsStartingFrom(address, startTimeInt)
+		if err != nil {
+			log.Errorf("error getting transaction count starting from: %v", err)
+			http.Error(w, "error getting transactions", http.StatusInternalServerError)
+			return
+		}
+		response.HasMore = response.Total > offset+count
+
+		txns, err = b.db.GetTransactionsStartingFrom(address, startTimeInt, offset, count)
+		if err != nil {
+			log.Errorf("error getting transactions starting from: %v", err)
 			http.Error(w, "error getting transactions", http.StatusInternalServerError)
 			return
 		}

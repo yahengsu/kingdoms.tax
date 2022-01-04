@@ -36,6 +36,34 @@ func (db *Database) GetNumTransactionsInRange(account string, startTime, endTime
 	return count, nil
 }
 
+// GetNumTransactionsUpTo returns the total number of transactions
+// made by the given account up to the given timestamp or an error if encountered.
+func (db *Database) GetNumTransactionsUpTo(account string, endTime int) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM Transaction WHERE account = $1 AND timestamp <= $2;`
+
+	err := db.pool.QueryRow(context.TODO(), query, strings.ToLower(account), endTime).Scan(&count)
+	if err != nil {
+		return count, fmt.Errorf("failed to get number of transactions: %v", err)
+	}
+
+	return count, nil
+}
+
+// GetNumTransactionsStartingFrom returns the total number of transactions
+// made by the given account starting from the given timestamp or an error if encountered.
+func (db *Database) GetNumTransactionsStartingFrom(account string, startTime int) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM Transaction WHERE account = $1 AND timestamp >= $2;`
+
+	err := db.pool.QueryRow(context.TODO(), query, strings.ToLower(account), startTime).Scan(&count)
+	if err != nil {
+		return count, fmt.Errorf("failed to get number of transactions: %v", err)
+	}
+
+	return count, nil
+}
+
 // GetTransactions returns transactions made by the given account
 // paginated by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactions(account string, offset, count int) ([]models.Transaction, error) {
@@ -74,6 +102,68 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC LIMIT $4 OFFSET $5;`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime, count, offset)
+	if err != nil {
+		return txns, fmt.Errorf("failed to get transactions: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var txn models.Transaction
+		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+
+		if err != nil {
+			return txns, fmt.Errorf("failed to scan transaction: %v", err)
+		}
+
+		txns = append(txns, txn)
+	}
+
+	if rows.Err() != nil {
+		return txns, fmt.Errorf("failed to get transactions: %v", err)
+	}
+
+	return txns, nil
+}
+
+// GetTransactionsUpTo returns transactions made by the given account
+// up to the given time stamp, paginaged by the given offset and limit, or an error if encountered.
+func (db *Database) GetTransactionsUpTo(account string, endTime, offset, count int) ([]models.Transaction, error) {
+	var txns []models.Transaction
+	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp <= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4;`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), endTime, count, offset)
+	if err != nil {
+		return txns, fmt.Errorf("failed to get transactions: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var txn models.Transaction
+		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+
+		if err != nil {
+			return txns, fmt.Errorf("failed to scan transaction: %v", err)
+		}
+
+		txns = append(txns, txn)
+	}
+
+	if rows.Err() != nil {
+		return txns, fmt.Errorf("failed to get transactions: %v", err)
+	}
+
+	return txns, nil
+}
+
+// GetTransactionsStartingFrom returns transactions made by the given account
+// starting from the given time stamp, paginaged by the given offset and limit, or an error if encountered.
+func (db *Database) GetTransactionsStartingFrom(account string, startTime, offset, count int) ([]models.Transaction, error) {
+	var txns []models.Transaction
+	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp >= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4;`
+
+	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, count, offset)
 	if err != nil {
 		return txns, fmt.Errorf("failed to get transactions: %v", err)
 	}
