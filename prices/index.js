@@ -6,7 +6,7 @@ const constants = require("./constants");
 
 const LP_PAIRS = Object.entries(constants.lp.JEWEL);
 const JEWEL_USDC_PAIR_ADDRESS = "0xa1221a5bbea699f507cc00bdedea05b5d2e32eba";
-
+const JEWEL_ADDRESS = "0x72cb10c6bfa5624dd07ef608027e366bd690048f";
 let totalNumTickData = 0;
 let totalNumAddedToDB = 0;
 
@@ -111,8 +111,8 @@ async function getJewelUsdPrices() {
     const ratio = reserve0 / reserve1;
     jewelPrices.push({
       timestamp: timestamp,
-      JEWEL: 1 / ratio,
-      USD: ratio,
+      JEWEL: ratio,
+      USD: 1 / ratio,
     });
   }
 
@@ -127,8 +127,8 @@ async function getJewelUsdPrices() {
       for (price of data.prices) {
         jewelPrices.push({
           timestamp: Math.trunc(price[0] / 1000),
-          JEWEL: price[1],
-          USD: 1 / price[1],
+          JEWEL: 1 / price[1],
+          USD: price[1],
         });
       }
     }
@@ -170,7 +170,7 @@ function updateTokenUSDPrices(pair) {
       usd_prices_index += 1;
       otherTimestamp = JEWEL_USD_PRICES[usd_prices_index].timestamp;
     }
-    const jewelUSDPrice = JEWEL_USD_PRICES[usd_prices_index].JEWEL;
+    const jewelUSDPrice = JEWEL_USD_PRICES[usd_prices_index].USD;
     const tokenUSDPrice = jewelUSDPrice * TOKEN_JEWEL_PRICES[i].JEWEL;
 
     TOKEN_JEWEL_PRICES[i].USD = tokenUSDPrice;
@@ -183,8 +183,7 @@ function updateTokenUSDPrices(pair) {
   );
 }
 
-async function addPairDataToDB(pair, client) {
-  const tokenName = pair[0];
+async function addPairDataToDB(tokenName, tokenAddress, client) {
   try {
     var pairData = JSON.parse(
       fs.readFileSync(`JEWEL-${tokenName}.json`, "utf-8")
@@ -195,14 +194,13 @@ async function addPairDataToDB(pair, client) {
     );
     return;
   }
-
   let addedRows = 0;
   for (tick of pairData) {
     const timestamp = tick.timestamp;
     const usdPrice = tick.USD;
     const query = {
       text: "INSERT INTO Price (timestamp, token, price) VALUES($1, $2, $3) ON CONFLICT (timestamp, token) DO NOTHING",
-      values: [timestamp, tokenName, usdPrice],
+      values: [timestamp, tokenAddress.toLowerCase(), usdPrice],
     };
     try {
       const resp = await client.query(query);
@@ -243,19 +241,28 @@ async function run() {
   await pgClient.connect();
   console.log("Connected to postgres db");
   // add rows to database
+  console.log("Adding JEWEL to db");
+  await addPairDataToDB("USD", JEWEL_ADDRESS, pgClient);
+  console.log("Finished adding JEWEL to db");
+
   console.log("Adding pair usd data to db");
   for (pair of LP_PAIRS) {
-    console.log(`Adding ${pair[0]} to db`);
-    await addPairDataToDB(pair, pgClient);
-    console.log(`Finished adding ${pair[0]} to db`);
+    const name = pair[0];
+    const address = pair[1].token;
+    console.log(`Adding ${name} to db`);
+    await addPairDataToDB(name, address, pgClient);
+    console.log(`Finished adding ${name} to db`);
   }
   console.log("Finished adding pair usd data to db");
   console.log(`Added ${totalNumAddedToDB} rows to db`);
   console.log("Finished running all tasks");
 }
 
-//update feeds every 2 hours
+// update feeds every 2 hours
 const TIMEOUT = 1000 * 60 * 60 * 2;
-setTimeout(() => {
+console.log(`Running price feed script at time ${Date.now()}`);
+run();
+setInterval(() => {
+  console.log(`Running price feed script at time ${Date.now()}`);
   run();
 }, TIMEOUT);
