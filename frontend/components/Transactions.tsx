@@ -56,6 +56,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
   const [userTransactions, setUserTransactions] = React.useState<Array<Transaction>>([]);
   const [page, setPage] = React.useState(0);
   const [doneLoading, setDoneLoading] = React.useState(false);
+  const [reset, setReset] = React.useState(false);
 
   const getTxns = async () => {
     try {
@@ -102,9 +103,15 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     setPage(0);
     setHasMore(true);
     setDoneLoading(false);
-
-    getTxns();
+    setReset(true);
   }, [address, startTime, endTime]);
+
+  useEffect(() => {
+    if (reset) {
+      getTxns();
+      setReset(false);
+    }
+  }, [reset]);
 
   return doneLoading && userTransactions.length === 0 ? (
     noTransactions
