@@ -43,7 +43,7 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
 
   return (
     <div className="grid grid-cols-12 w-2/3 mt-5 items-end">
-      <div className="col-span-4">
+      <div className="col-span-5">
         {formMethods ? (
           <FormProvider {...formMethods}>
             <form onSubmit={formMethods.handleSubmit(onSubmit)}>
@@ -72,7 +72,7 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           </FormProvider>
         ) : null}
       </div>
-      <div className="col-span-4"></div>
+      <div className="col-span-3"></div>
       <div className="col-span-3 flex flex-col">
         <div
           className="text-md hover:text-cyan-400 hover:font-medium cursor-pointer mb-1 text-right"
