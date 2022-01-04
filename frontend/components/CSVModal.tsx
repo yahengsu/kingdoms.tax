@@ -30,7 +30,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
   if (endTime !== '') {
     endTimeSeconds = (parseInt(endTime) / 1000).toString();
   }
-  const numToFetch = '100';
+  const numToFetch = '25';
   const [total, setTotal] = React.useState(0);
   const [progress, setProgress] = React.useState(0);
   const [page, setPage] = React.useState(0);
@@ -42,21 +42,26 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
     { label: 'Token Address', key: 'tokenAddr' },
     { label: 'Token Name', key: 'tokenName' },
     { label: 'Net Token Amount', key: 'netAmount' },
+    { label: 'USD Price', key: 'usdPrice' },
+    { label: 'Net USD Amount', key: 'usdNetAmount' },
   ];
 
   const txnsToCsv = (transactions: Array<Transaction>): Array<CSVTxns> => {
     const ret = [];
     for (const txn of transactions) {
       let netAmt = '1';
+      let amt = 1;
       if (txn.token_type === 'ERC20') {
         const weiAmt = parseFloat(parseInt(txn.net_amount, 16).toString());
-        netAmt = (weiAmt / Math.pow(10, decimals[txn.token_addr])).toFixed(Math.min(4, decimals[txn.token_addr]));
+        amt = weiAmt / Math.pow(10, decimals[txn.token_addr]);
+        netAmt = amt.toFixed(Math.min(4, decimals[txn.token_addr]));
       }
 
       if (txn.direction === 'IN') {
         netAmt = '+' + netAmt;
       } else {
         netAmt = '-' + netAmt;
+        amt *= -1;
       }
 
       ret.push({
@@ -65,6 +70,8 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
         tokenAddr: txn.token_addr,
         tokenName: addrs_to_token[txn.token_addr],
         netAmount: netAmt,
+        usdPrice: txn.price,
+        usdNetAmount: txn.price * amt,
       });
     }
     return ret;
