@@ -110,7 +110,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
                 </div>
                 <div className="relative p-5 flex-col flex items-center">
                   <ProgressBar current={progress} end={total} />
-                  <p className="pt-2">
+                  <p className="pt-2 font-semibold">
                     {progress}/{total}
                   </p>
                 </div>
