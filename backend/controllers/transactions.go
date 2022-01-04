@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"dfk-txns-be/models"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,6 +18,27 @@ type GetTransactionsResponse struct {
 	HasMore      bool                 `json:"has_more"`
 }
 
+func GroupTransactionsByToken(txns []models.Transaction) []models.Transaction {
+	var grouped []models.Transaction
+	count := make(map[string]models.Transaction)
+
+	for _, txn := range txns {
+		key := fmt.Sprint(txn.TxnHash + txn.TokenAddr + txn.CounterParty)
+		amt, _ := strconv.ParseInt(txn.NetAmount, 0, 64)
+		if val, ok := count[key]; ok {
+			currAmt, _ := strconv.ParseInt(val.NetAmount, 0, 64)
+			newAmt := amt + currAmt
+			val.NetAmount = strconv.FormatInt(newAmt, 16)
+			count[key] = val
+		} else {
+			count[key] = txn
+		}
+	}
+	for _, value := range count {
+		grouped = append(grouped, value)
+	}
+	return grouped
+}
 func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	startTime := query.Get("startTime")
@@ -85,8 +108,9 @@ func (b *BaseController) GetTransactions(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	groupedTxns := GroupTransactionsByToken(txns)
+	response.Transactions = groupedTxns
 
-	response.Transactions = txns
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		log.Errorf("error encoding response: %v", err)
