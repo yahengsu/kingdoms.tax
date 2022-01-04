@@ -1,3 +1,5 @@
+import { fromUnixTime } from 'date-fns';
+import { format } from 'date-fns-tz';
 import React from 'react';
 
 import {
@@ -8,8 +10,6 @@ import {
   OTHER_ADDRESSES,
   QUEST_TOKEN_ADDRESSES,
 } from '../constants/constants';
-import { fromUnixTime } from 'date-fns';
-import { format } from 'date-fns-tz';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -93,12 +93,11 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
       : directionDefaultClasses + ' text-red-500 bg-red-200';
 
   const txnDate = fromUnixTime(timestamp);
-  console.log(timestamp);
   const dateString = format(txnDate, 'd MMM yyyy');
   const timeString = format(txnDate, 'hh:mm:ss a z');
 
   return (
-    <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-5/6 text-lg items-center">
+    <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-2/3 text-lg items-center">
       <a
         target="_blank"
         rel="noreferrer"
@@ -124,10 +123,10 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
         />
       </div>
       <span className="px-5 col-span-2">{netAmt}</span>
-      <span className="px-5 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center bg-cyan-200">
+      <span className="px-5 col-span-2 rounded-lg font-medium w-1rem justify-self-center text-center bg-cyan-200">
         {eventType()}
       </span>
-      <span className="px-5 col-span-2">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
+      <span className="px-5 col-span-1 justify-self-center">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
       <span className="px-5 col-span-2">Coming Soon</span>
     </div>
   );

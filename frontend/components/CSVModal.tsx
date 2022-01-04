@@ -52,7 +52,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
 
       ret.push({
         txnHash: txn.txn_hash,
-        date: new Date(txn.timestamp * 1000).toUTCString(),
+        date: new Date(txn.timestamp).toUTCString(),
         tokenAddr: txn.token_addr,
         netAmount: netAmt,
       });
@@ -97,7 +97,7 @@ const CSVModal: React.FC<ExportProps> = ({ ...props }) => {
 
   return (
     <>
-      <Button onClick={() => setShowModal(true)} buttonText="Export to CSV" />
+      <Button onClick={() => setShowModal(true)} buttonText="Export CSV" small />
       {showModal ? (
         <>
           <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">

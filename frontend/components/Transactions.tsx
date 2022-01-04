@@ -3,7 +3,6 @@ import TransactionCard from './TransactionCard';
 import TransactionHeader from './TransactionsHeader';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import ReactLoading from 'react-loading';
-import CSVModal from './CSVModal';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -56,6 +55,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
   const [hasMore, setHasMore] = React.useState(true);
   const [userTransactions, setUserTransactions] = React.useState<Array<Transaction>>([]);
   const [page, setPage] = React.useState(0);
+  const [doneLoading, setDoneLoading] = React.useState(false);
 
   const getTxns = async () => {
     try {
@@ -77,6 +77,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
           setUserTransactions([]);
           setHasMore(false);
         }
+        setDoneLoading(true);
       }
     } catch (err) {
       console.log(err);
@@ -85,27 +86,36 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
 
   const spinLoader = (
     <div className={'flex justify-center items-center mt-6'}>
-      <ReactLoading type={'spin'} color={'#8b5cf6'} height={'60px'} width={'60px'} />
+      <ReactLoading type={'spin'} color={'#22d3ee'} height={'60px'} width={'60px'} />
+    </div>
+  );
+
+  const noTransactions = (
+    <div className="flex flex-col justify-center items-center w-full h-full">
+      <h1 className="text-center w-full h-full font-semibold text-3xl">No transactions to display.</h1>
     </div>
   );
 
   useEffect(() => {
+    // Reset on inputs change
+    setUserTransactions([]);
+    setPage(0);
+    setHasMore(true);
+    setDoneLoading(false);
+
     getTxns();
   }, [address, startTime, endTime]);
 
-  return (
+  return doneLoading && userTransactions.length === 0 ? (
+    noTransactions
+  ) : (
     <InfiniteScroll
-      className="flex flex-col justify-center items-center w-full h-full py-5"
+      className="flex flex-col justify-center items-center w-screen h-full"
       next={getTxns}
       hasMore={hasMore}
       loader={spinLoader}
       dataLength={userTransactions.length}
     >
-      <CSVModal
-        address={address}
-        startTime={startTime}
-        endTime={endTime}
-      />
       <TransactionHeader />
       {userTransactions.map((txn) => (
         <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>
