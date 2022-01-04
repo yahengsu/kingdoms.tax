@@ -24,7 +24,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>Transactions | kingdoms.tax</title>
+        <title>kingdoms.tax</title>
       </Head>
       <div className="flex flex-col font-default w-full min-h-screen items-center justify-center bg-gray-50">
         <h1 className="font-bold text-7xl text-transparent text-center bg-clip-text bg-gradient-to-r from-cyan-500 to-green-500">

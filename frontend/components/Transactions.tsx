@@ -93,7 +93,8 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
 
   const noTransactions = (
     <div className="flex flex-col justify-center items-center w-full h-full">
-      <h1 className="text-center w-full h-full font-semibold text-3xl">No transactions to display.</h1>
+      <TransactionHeader />
+      <h1 className="mt-16 text-center w-full h-full font-semibold text-3xl">No transactions to display.</h1>
     </div>
   );
 
