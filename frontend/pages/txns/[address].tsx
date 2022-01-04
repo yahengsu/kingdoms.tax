@@ -1,4 +1,5 @@
 import { NextPage } from 'next';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 
@@ -26,22 +27,27 @@ const Txns: NextPage = () => {
   }, [startDate]);
 
   return (
-    <div className="flex flex-col font-default w-full min-h-screen items-center bg-gray-50 py-10">
-      <h1 className="font-bold text-3xl">Your Transactions</h1>
-      <SearchFilterBar
-        address={address}
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onDateReset={resetDates}
-      />
-      <Transactions
-        address={typeof address == 'string' ? address : ''}
-        startTime={startDate ? String(startDate.getTime() / 1000) : ''}
-        endTime={endDate ? String(endDate.getTime() / 1000) : ''}
-      />
-    </div>
+    <>
+      <Head>
+        <title>Transactions | kingdoms.tax</title>
+      </Head>
+      <div className="flex flex-col font-default w-full min-h-screen items-center bg-gray-50 py-10">
+        <h1 className="font-bold text-3xl">Your Transactions</h1>
+        <SearchFilterBar
+          address={address}
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onDateReset={resetDates}
+        />
+        <Transactions
+          address={typeof address == 'string' ? address : ''}
+          startTime={startDate ? String(startDate.getTime() / 1000) : ''}
+          endTime={endDate ? String(endDate.getTime() / 1000) : ''}
+        />
+      </div>
+    </>
   );
 };
 
