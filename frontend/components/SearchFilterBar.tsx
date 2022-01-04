@@ -73,12 +73,11 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
         ) : null}
       </div>
       <div className="col-span-3"></div>
-      <div className="col-span-3 flex flex-col">
-        <div
-          className="text-md hover:text-cyan-400 hover:font-medium cursor-pointer mb-1 text-right"
-          onClick={onDateReset}
-        >
-          Reset
+      <div className="col-span-3">
+        <div className="flex flex-row text-md mb-1 text-red-600 text-right justify-end">
+          <p className="hover:text-red-500 hover:font-medium cursor-pointer" onClick={onDateReset}>
+            Reset
+          </p>
         </div>
         <div className="flex flex-row space-x-3 items-center">
           <div className="relative w-full">
