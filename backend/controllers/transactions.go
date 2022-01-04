@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,7 @@ func GroupTransactionsByToken(txns []models.Transaction) []models.Transaction {
 	count := make(map[string]models.Transaction)
 
 	for _, txn := range txns {
+		key := fmt.Sprint(txn.TxnHash + txn.TokenAddr + txn.CounterParty)
 		amt, _ := strconv.ParseInt(txn.NetAmount, 0, 64)
 		if val, ok := count[key]; ok {
 			currAmt, _ := strconv.ParseInt(val.NetAmount, 0, 64)
