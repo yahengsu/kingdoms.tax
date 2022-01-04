@@ -122,13 +122,6 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     </div>
   );
 
-  const noTransactions = (
-    <div className="flex flex-col justify-center items-center w-full h-full">
-      <TransactionHeader />
-      <h1 className="mt-16 text-center w-full h-full font-semibold text-3xl">No transactions to display.</h1>
-    </div>
-  );
-
   useEffect(() => {
     // Reset on inputs change
     setUserTransactions([]);
@@ -145,8 +138,17 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     }
   }, [reset]);
 
-  return doneLoading && userTransactions.length === 0 ? (
-    noTransactions
+  return userTransactions.length === 0 ? (
+    <div className="flex flex-col justify-center items-center w-full h-full">
+      <TransactionHeader />
+      {doneLoading ? (
+        <h1 className="mt-16 text-center w-full h-full font-semibold text-3xl">No transactions to display.</h1>
+      ) : (
+        <div className="mt-16">
+          <ReactLoading type={'spin'} color={'#22d3ee'} height={'60px'} width={'60px'} />
+        </div>
+      )}
+    </div>
   ) : (
     <InfiniteScroll
       className="flex flex-col justify-center items-center w-screen h-full"
