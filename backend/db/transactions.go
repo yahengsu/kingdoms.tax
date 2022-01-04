@@ -8,6 +8,24 @@ import (
 	"dfk-txns-be/models"
 )
 
+const BasePriceQuery = `
+SELECT
+	account, counterparty, block_num, direction, net_amount, timestamp, token_address, token_id, token_type, txn_hash, log_index, COALESCE(usd, 0.0) as usd
+FROM
+	(
+		SELECT
+			account, counterparty, block_num, direction, net_amount, res.timestamp, token_address, token_id, token_type, txn_hash, log_index, price as usd,
+			ROW_NUMBER() OVER 
+				(PARTITION BY account, counterparty, block_num, direction, net_amount, res.timestamp, token_address, token_id, token_type, txn_hash, log_index 
+					ORDER BY ABS(res.timestamp - Price.timestamp)) AS rank
+		FROM
+		(%s) as res
+		LEFT JOIN Price
+		ON res.token_address = Price.token
+	) AS diffs
+WHERE rank = 1;
+`
+
 // GetNumTransactions returns the total number of transactions
 // made by the given account or an error if encountered.
 func (db *Database) GetNumTransactions(account string) (int, error) {
@@ -68,7 +86,8 @@ func (db *Database) GetNumTransactionsStartingFrom(account string, startTime int
 // paginated by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactions(account string, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3;`
+	innerQuery := `SELECT * FROM Transaction WHERE account = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3`
+	query := fmt.Sprintf(BasePriceQuery, innerQuery)
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), count, offset)
 	if err != nil {
@@ -79,7 +98,7 @@ func (db *Database) GetTransactions(account string, offset, count int) ([]models
 	for rows.Next() {
 		var txn models.Transaction
 		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
-			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex, &txn.Price)
 
 		if err != nil {
 			return txns, fmt.Errorf("failed to scan transaction: %v", err)
@@ -99,7 +118,8 @@ func (db *Database) GetTransactions(account string, offset, count int) ([]models
 // in the specified time period, paginated by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactionsInRange(account string, startTime, endTime, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC LIMIT $4 OFFSET $5;`
+	innerQuery := `SELECT * FROM Transaction WHERE account = $1 AND timestamp BETWEEN $2 AND $3 ORDER BY timestamp DESC LIMIT $4 OFFSET $5`
+	query := fmt.Sprintf(BasePriceQuery, innerQuery)
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime, count, offset)
 	if err != nil {
@@ -110,7 +130,7 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 	for rows.Next() {
 		var txn models.Transaction
 		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
-			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex, &txn.Price)
 
 		if err != nil {
 			return txns, fmt.Errorf("failed to scan transaction: %v", err)
@@ -130,7 +150,8 @@ func (db *Database) GetTransactionsInRange(account string, startTime, endTime, o
 // up to the given time stamp, paginaged by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactionsUpTo(account string, endTime, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp <= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4;`
+	innerQuery := `SELECT * FROM Transaction WHERE account = $1 AND timestamp <= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4`
+	query := fmt.Sprintf(BasePriceQuery, innerQuery)
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), endTime, count, offset)
 	if err != nil {
@@ -141,7 +162,7 @@ func (db *Database) GetTransactionsUpTo(account string, endTime, offset, count i
 	for rows.Next() {
 		var txn models.Transaction
 		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
-			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex, &txn.Price)
 
 		if err != nil {
 			return txns, fmt.Errorf("failed to scan transaction: %v", err)
@@ -161,7 +182,8 @@ func (db *Database) GetTransactionsUpTo(account string, endTime, offset, count i
 // starting from the given time stamp, paginaged by the given offset and limit, or an error if encountered.
 func (db *Database) GetTransactionsStartingFrom(account string, startTime, offset, count int) ([]models.Transaction, error) {
 	var txns []models.Transaction
-	query := `SELECT * FROM Transaction WHERE account = $1 AND timestamp >= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4;`
+	innerQuery := `SELECT * FROM Transaction WHERE account = $1 AND timestamp >= $2 ORDER BY timestamp DESC LIMIT $3 OFFSET $4`
+	query := fmt.Sprintf(BasePriceQuery, innerQuery)
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, count, offset)
 	if err != nil {
@@ -172,7 +194,7 @@ func (db *Database) GetTransactionsStartingFrom(account string, startTime, offse
 	for rows.Next() {
 		var txn models.Transaction
 		err := rows.Scan(&txn.Account, &txn.CounterParty, &txn.BlockNum, &txn.Direction, &txn.NetAmount,
-			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex)
+			&txn.Timestamp, &txn.TokenAddr, &txn.TokenID, &txn.TokenType, &txn.TxnHash, &txn.LogIndex, &txn.Price)
 
 		if err != nil {
 			return txns, fmt.Errorf("failed to scan transaction: %v", err)

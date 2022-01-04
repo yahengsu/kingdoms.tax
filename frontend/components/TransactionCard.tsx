@@ -23,14 +23,23 @@ type CardProps = {
   tokenType: Token;
   txnHash: string; // Hex String
   counterparty: string; // Hex String
+  price: number;
 };
 
 const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
-  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash, counterparty } = props;
+  const { direction, netAmount, timestamp, tokenAddr, tokenId, tokenType, txnHash, counterparty, price } = props;
   let netAmt = '1';
+  let amount = 0;
   if (tokenType === 'ERC20') {
     const weiAmt = parseFloat(parseInt(netAmount, 16).toString());
-    netAmt = (weiAmt / Math.pow(10, decimals[tokenAddr])).toFixed(Math.min(4, decimals[tokenAddr]));
+    amount = weiAmt / Math.pow(10, decimals[tokenAddr]);
+    netAmt = amount.toFixed(Math.min(4, decimals[tokenAddr]));
+  }
+
+  if (direction === 'IN') {
+    netAmt = '+ ' + netAmt;
+  } else {
+    netAmt = '- ' + netAmt;
   }
 
   const eventType = () => {
@@ -80,12 +89,6 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
     return 'TRANSFER';
   };
 
-  if (direction === 'IN') {
-    netAmt = '+ ' + netAmt;
-  } else {
-    netAmt = '- ' + netAmt;
-  }
-
   const directionDefaultClasses = 'px-3 col-span-1 rounded-lg font-medium w-1rem justify-self-center text-center';
   const directionClasses =
     direction === 'IN'
@@ -127,7 +130,7 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
         {eventType()}
       </span>
       <span className="px-5 col-span-1 justify-self-center">{tokenId ? parseInt(tokenId, 16) : 'N/A'} </span>
-      <span className="px-5 col-span-2">Coming Soon</span>
+      <span className="px-5 col-span-2">{`\$${(price * amount).toFixed(2)}`}</span>
     </div>
   );
 };

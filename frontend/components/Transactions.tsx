@@ -39,6 +39,7 @@ export type Transaction = {
   token_type: Token;
   txn_hash: string;
   log_index: string;
+  price: number;
 };
 
 export const requestTxns = async (requestParams: TxnRequestParams): Promise<TxnResponse> => {
@@ -136,6 +137,7 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
             tokenType={txn.token_type}
             txnHash={txn.txn_hash}
             counterparty={txn.counterparty}
+            price={txn.price}
           />
         </div>
       ))}
