@@ -23,7 +23,8 @@ FROM
 		LEFT JOIN Price
 		ON res.token_address = Price.token
 	) AS diffs
-WHERE rank = 1;
+WHERE rank = 1
+ORDER BY timestamp DESC;
 `
 
 // GetNumTransactions returns the total number of transactions
