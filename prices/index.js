@@ -256,6 +256,9 @@ async function run() {
 
 //update feeds every 2 hours
 const TIMEOUT = 1000 * 60 * 60 * 2;
-setTimeout(() => {
+console.log(`Running price feed script at time ${Date.now}`);
+run();
+setInterval(() => {
+  console.log(`Running price feed script at time ${Date.now}`);
   run();
 }, TIMEOUT);
