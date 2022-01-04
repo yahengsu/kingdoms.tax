@@ -27,6 +27,14 @@ export type TxnResponse = {
   has_more: boolean;
 };
 
+export type QuestReward = {
+  token_addr: string;
+  count: number;
+};
+export type QuestTxnResponse = {
+  questCounts: Array<QuestReward>;
+};
+
 export type Transaction = {
   account: string;
   counterparty: string;
@@ -45,6 +53,14 @@ export type Transaction = {
 export const requestTxns = async (requestParams: TxnRequestParams): Promise<TxnResponse> => {
   const searchParams = new URLSearchParams(requestParams);
   const url = 'https://backend-jtcrtmomna-uc.a.run.app/transactions?' + searchParams.toString();
+  const res = await fetch(url);
+  const json = await res.json();
+  return json;
+};
+
+export const requestQuestRewardCounts = async (requestParams: TxnRequestParams): Promise<QuestTxnResponse> => {
+  const searchParams = new URLSearchParams(requestParams);
+  const url = 'https://backend-jtcrtmomna-uc.a.run.app/questcounts?' + searchParams.toString();
   const res = await fetch(url);
   const json = await res.json();
   return json;
@@ -86,6 +102,20 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
     }
   };
 
+  const getQuestRewards = async () => {
+    try {
+      if (address) {
+        const paramsObj: TxnRequestParams = {
+          address: address,
+          startTime: startTime,
+          endTime: endTime,
+          page: page.toString(),
+        };
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
   const spinLoader = (
     <div className={'flex justify-center items-center mt-6'}>
       <ReactLoading type={'spin'} color={'#22d3ee'} height={'60px'} width={'60px'} />
