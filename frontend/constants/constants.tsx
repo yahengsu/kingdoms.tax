@@ -69,7 +69,7 @@ const decimals: DecimalObject = {
 
 const token_to_addrs: GenericObject = {
   JewelToken: '0x72cb10c6bfa5624dd07ef608027e366bd690048f',
-  xJEWEL: '0xa9ce83507d872c5e1273e745abcfda849daa654f',
+  xJewel: '0xa9ce83507d872c5e1273e745abcfda849daa654f',
   GaiasTears: '0x24ea0d436d3c2602fbfefbe6a16bbc304c963d04',
   DFKGold: '0x3a4edcf3312f44ef027acfd8c21382a5259936e7',
   Ambertaffy: '0x6e1bc01cc52d165b357c42042cf608159a2b81c1',
