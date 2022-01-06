@@ -54,7 +54,7 @@ const QuestRewardCard: React.FC<QuestProps> = ({ ...props }) => {
         }
         return true;
     }).map((item) => (
-        <div className="grid grid-cols-2 col-span-1 text-center items-center">
+        <div className="grid grid-cols-2 col-span-1 text-center items-center" key={item.token_addr}>
             <img
                 className="w-12 transition duration-150"
                 alt={addrs_to_token[item.token_addr]}
