@@ -4,6 +4,7 @@ import TransactionHeader from './TransactionsHeader';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import ReactLoading from 'react-loading';
 import QuestRewardCard from './QuestRewardCard';
+import StatsCard from './StatsCard';
 
 type Direction = 'IN' | 'OUT';
 type Token = 'ERC20' | 'ERC721';
@@ -128,11 +129,12 @@ const Transactions: React.FC<TransactionsProps> = ({ ...props }) => {
       loader={spinLoader}
       dataLength={userTransactions.length}
     >
-      <QuestRewardCard
-        address={address} 
-        startTime={startTime}
-        endTime={endTime}
-      />
+      <div className="flex flex-row w-5/6 2xl:w-2/3 space-x-5">
+        <QuestRewardCard address={address} startTime={startTime} endTime={endTime} />
+        <StatsCard>
+          <p className="text-center place-self-center font-medium align-middle">Coming soon!</p>
+        </StatsCard>
+      </div>
       <TransactionHeader />
       {userTransactions.map((txn) => (
         <div className="flex flex-row justify-center py-2 w-full" key={txn.txn_hash + txn.direction + txn.log_index}>

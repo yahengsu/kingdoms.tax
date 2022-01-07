@@ -42,7 +42,7 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-12 w-2/3 mt-5 items-end">
+    <div className="grid grid-cols-12 w-5/6 2xl:w-2/3 mt-5 items-end">
       <div className="col-span-5">
         {formMethods ? (
           <FormProvider {...formMethods}>

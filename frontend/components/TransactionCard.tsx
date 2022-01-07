@@ -6,8 +6,8 @@ import {
   addrs_to_token,
   decimals,
   LP_PAIRS,
-  OTHER_LP_PAIRS,
   OTHER_ADDRESSES,
+  OTHER_LP_PAIRS,
   QUEST_TOKEN_ADDRESSES,
 } from '../constants/constants';
 
@@ -100,7 +100,7 @@ const TransactionCard: React.FC<CardProps> = ({ ...props }) => {
   const timeString = format(txnDate, 'hh:mm:ss a z');
 
   return (
-    <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-2/3 text-lg items-center">
+    <div className="grid grid-cols-12 rounded-lg py-5 drop-shadow-lg hover:drop-shadow-2xl bg-white w-5/6 2xl:w-2/3 text-lg items-center">
       <a
         target="_blank"
         rel="noreferrer"
