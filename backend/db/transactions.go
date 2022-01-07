@@ -215,10 +215,11 @@ func (db *Database) GetQuestRewards(account string) ([]models.QuestReward, error
 	var questCounts []models.QuestReward
 
 	query := `
-		SELECT token_address, COUNT(*) 
-		FROM Transaction 
-		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' 
-		GROUP BY token_address;
+		SELECT token_address, COUNT(*) as c
+		FROM Transaction
+		WHERE account = '0x13360d1ec441ab0f140783c95296a8c8e460d9cd' AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN'
+		GROUP BY token_address
+		ORDER BY c DESC;
 	`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account))
@@ -249,10 +250,11 @@ func (db *Database) GetQuestRewardsInRange(account string, startTime, endTime in
 	var questCounts []models.QuestReward
 
 	query := `
-		SELECT token_address, COUNT(*) 
-		FROM Transaction 
-		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp BETWEEN $2 AND $3
-		GROUP BY token_address;
+		SELECT token_address, COUNT(*) as c
+		FROM Transaction
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN' AND timestamp BETWEEN $2 AND $3
+		GROUP BY token_address
+		ORDER BY c DESC;
 	`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime, endTime)
@@ -283,10 +285,11 @@ func (db *Database) GetQuestRewardsUpTo(account string, endTime int) ([]models.Q
 	var questCounts []models.QuestReward
 
 	query := `
-		SELECT token_address, COUNT(*) 
-		FROM Transaction 
-		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp <= $2
-		GROUP BY token_address;
+		SELECT token_address, COUNT(*) as c
+		FROM Transaction
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN' AND timestamp <= $2
+		GROUP BY token_address
+		ORDER BY c DESC;
 	`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), endTime)
@@ -317,10 +320,11 @@ func (db *Database) GetQuestRewardsStartingFrom(account string, startTime int) (
 	var questCounts []models.QuestReward
 
 	query := `
-		SELECT token_address, COUNT(*) 
-		FROM Transaction 
-		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND timestamp >= $2
-		GROUP BY token_address;
+		SELECT token_address, COUNT(*) as C
+		FROM Transaction
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN' AND timestamp >= $2
+		GROUP BY token_address
+		ORDER BY c DESC;
 	`
 
 	rows, err := db.pool.Query(context.TODO(), query, strings.ToLower(account), startTime)
