@@ -217,7 +217,7 @@ func (db *Database) GetQuestRewards(account string) ([]models.QuestReward, error
 	query := `
 		SELECT token_address, COUNT(*) as c
 		FROM Transaction
-		WHERE account = '0x13360d1ec441ab0f140783c95296a8c8e460d9cd' AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN'
+		WHERE account = $1 AND counterparty = '0x0000000000000000000000000000000000000000' AND direction = 'IN'
 		GROUP BY token_address
 		ORDER BY c DESC;
 	`
