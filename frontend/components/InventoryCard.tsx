@@ -37,7 +37,6 @@ const InventoryCard: React.FC<InventoryProps> = ({ ...props }) => {
     }
     setInventory(inv);
     setDoneLoading(true);
-    console.log(inv);
     return inv;
   };
 
