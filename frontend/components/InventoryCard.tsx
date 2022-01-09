@@ -24,15 +24,20 @@ const InventoryCard: React.FC<InventoryProps> = ({ ...props }) => {
   const getQuestCounts = async (address: string) => {
     let inv: Array<InventoryBalance> = [];
     for (const addr of QUEST_TOKEN_ADDRESSES) {
-      const tokenContract = new ethers.Contract(addr, abi, provider);
-      const balance = await tokenContract.balanceOf(address);
-      const balanceNum = ethers.utils.formatUnits(balance, decimals[addr]);
-      const invBalance: InventoryBalance = {
-        token_addr: addr,
-        count: balanceNum,
-      };
-      if (parseInt(balanceNum, 10) !== 0) {
-        inv.push(invBalance);
+      try {
+        const tokenContract = new ethers.Contract(addr, abi, provider);
+        const balance = await tokenContract.balanceOf(address);
+        const balanceNum = ethers.utils.formatUnits(balance, decimals[addr]);
+        const invBalance: InventoryBalance = {
+          token_addr: addr,
+          count: balanceNum,
+        };
+        if (parseInt(balanceNum, 10) !== 0) {
+          inv.push(invBalance);
+        }
+      } catch (error) {
+        console.log(error);
+        continue;
       }
     }
     setInventory(inv);
