@@ -27,7 +27,7 @@ const InventoryCard: React.FC<InventoryProps> = ({ ...props }) => {
       try {
         const tokenContract = new ethers.Contract(addr, abi, provider);
         const balance = await tokenContract.balanceOf(address);
-        const balanceNum = ethers.utils.formatUnits(balance, decimals[addr]);
+        const balanceNum = ethers.utils.formatUnits(balance, Math.min(decimals[addr], 2));
         const invBalance: InventoryBalance = {
           token_addr: addr,
           count: balanceNum,
@@ -53,25 +53,27 @@ const InventoryCard: React.FC<InventoryProps> = ({ ...props }) => {
 
   // Manually filter out non-quest items (oops they're also minted from zero addr)
   const items = inventory
-    .filter((item) => {
-      if (item.token_addr === token_to_addrs['xJewel'] || item.token_addr === token_to_addrs['Hero']) {
-        return false;
-      }
-      return true;
-    })
-    .map((item) => (
-      <div className="grid grid-cols-2 col-span-1 text-center items-center" key={item.token_addr}>
-        <img
-          className="w-12 transition duration-150"
-          alt={addrs_to_token[item.token_addr]}
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title={addrs_to_token[item.token_addr]}
-          src={'/' + addrs_to_token[item.token_addr] + '.png'}
-        ></img>
-        <p>x{item.count}</p>
-      </div>
-    ));
+    ? inventory
+        .filter((item) => {
+          if (item.token_addr === token_to_addrs['xJewel'] || item.token_addr === token_to_addrs['Hero']) {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => (
+          <div className="grid grid-cols-2 col-span-1 text-center items-center" key={item.token_addr}>
+            <img
+              className="w-12 transition duration-150"
+              alt={addrs_to_token[item.token_addr]}
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              title={addrs_to_token[item.token_addr]}
+              src={'/' + addrs_to_token[item.token_addr] + '.png'}
+            ></img>
+            <p>x{item.count}</p>
+          </div>
+        ))
+    : [];
 
   return doneLoading ? (
     <StatsCard>

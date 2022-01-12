@@ -46,25 +46,27 @@ const QuestRewardCard: React.FC<QuestProps> = ({ ...props }) => {
 
   // Manually filter out non-quest items (oops they're also minted from zero addr)
   const items = rewards
-    .filter((item) => {
-      if (item.token_addr === token_to_addrs['xJewel'] || item.token_addr === token_to_addrs['Hero']) {
-        return false;
-      }
-      return true;
-    })
-    .map((item) => (
-      <div className="grid grid-cols-2 col-span-1 text-center items-center" key={item.token_addr}>
-        <img
-          className="w-12 transition duration-150"
-          alt={addrs_to_token[item.token_addr]}
-          data-bs-toggle="tooltip"
-          data-bs-placement="top"
-          title={addrs_to_token[item.token_addr]}
-          src={'/' + addrs_to_token[item.token_addr] + '.png'}
-        ></img>
-        <p>x{item.count}</p>
-      </div>
-    ));
+    ? rewards
+        .filter((item) => {
+          if (item.token_addr === token_to_addrs['xJewel'] || item.token_addr === token_to_addrs['Hero']) {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => (
+          <div className="grid grid-cols-2 col-span-1 text-center items-center" key={item.token_addr}>
+            <img
+              className="w-12 transition duration-150"
+              alt={addrs_to_token[item.token_addr]}
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              title={addrs_to_token[item.token_addr]}
+              src={'/' + addrs_to_token[item.token_addr] + '.png'}
+            ></img>
+            <p>x{item.count}</p>
+          </div>
+        ))
+    : [];
 
   return (
     <StatsCard>
