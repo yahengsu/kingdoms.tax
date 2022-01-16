@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use chrono::{Duration, Utc};
 use ethers::prelude::{LogMeta, Middleware, TxHash, U256, U64};
 use ethers::providers::{Http, Provider};
@@ -40,7 +40,7 @@ struct JWTClaims {
     exp: u64,
 }
 
-const BLOCKS_PER_REQ: u64 = 10;
+const BLOCKS_PER_REQ: u64 = 100;
 const RETRY_WAIT_TIME: u64 = 5;
 
 #[derive(Serialize, Deserialize)]
@@ -159,11 +159,16 @@ async fn index_txns_to_end_block(
         erc20_transfer_filter.filter = erc20_transfer_filter.filter.select(selection.clone());
 
         // Get block timestamps for this range
-        let block_ts_map = get_block_timestamps(
+        let block_ts_map = match get_block_timestamps(
             start_block..start_block + BLOCKS_PER_REQ + 1, // ethers-rs filter treats ranges as INCLUSIVE while querying for blocks is exclusive so we add 1.
             provider.clone(),
         )
-        .await?;
+        .await
+        {
+            Ok(block_map) => block_map,
+            _ => continue, // retry, timestamps are essential
+        };
+
         // Query transfers in parallel
         let erc20_transfers = erc20_transfer_filter.query_with_meta();
         let erc721_transfers = erc721_transfer_filter.query_with_meta();
@@ -238,13 +243,19 @@ async fn index_txns_to_end_block(
 async fn get_block_timestamps(
     selection: Range<u64>,
     provider: Arc<Provider<Http>>,
-) -> Result<HashMap<U64, u64>> {
+) -> Result<HashMap<U64, u64>, ()> {
     // Grab block data for all blocks in range so we can add timestamps
     let blocks_futures = selection.map(|i| provider.get_block(i));
-    let blocks_data = try_join_all(blocks_futures).await?;
+    let blocks_data = match try_join_all(blocks_futures).await {
+        Ok(data) => data,
+        Err(_) => return Err(()),
+    };
     let mut blocks_map = HashMap::<U64, u64>::new();
     for maybe_block in blocks_data {
-        let block = maybe_block.expect("Missing block!");
+        let block = match maybe_block {
+            Some(block) => block,
+            _ => return Err(()),
+        };
         blocks_map.insert(
             block.number.expect("Missing block number!"),
             block.timestamp.as_u64(),
