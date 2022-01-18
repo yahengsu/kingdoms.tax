@@ -236,7 +236,11 @@ async fn index_txns_to_end_block(
         // We stay 20 blocks back from live to prevent rpc errors for fresh blocks.
         while start_block >= last_block - BLOCKS_PER_REQ - 20 {
             sleep(tokio::time::Duration::from_secs(10)).await;
-            last_block = provider.get_block_number().await?.as_u64();
+            last_block = match provider.get_block_number().await {
+                Ok(block) => block,
+                _ => continue,
+            }
+            .as_u64();
         }
     }
 }
