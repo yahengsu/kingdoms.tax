@@ -170,6 +170,7 @@ async fn index_txns_to_end_block(
         };
 
         // Query transfers in parallel
+        println!("Fetching transfers");
         let erc20_transfers = erc20_transfer_filter.query_with_meta();
         let erc721_transfers = erc721_transfer_filter.query_with_meta();
         let raw_transfers = try_join!(erc20_transfers, erc721_transfers);
@@ -245,6 +246,7 @@ async fn get_block_timestamps(
     provider: Arc<Provider<Http>>,
 ) -> Result<HashMap<U64, u64>, ()> {
     // Grab block data for all blocks in range so we can add timestamps
+    println!("Fetching blocks");
     let blocks_futures = selection.map(|i| provider.get_block(i));
     let blocks_data = match try_join_all(blocks_futures).await {
         Ok(data) => data,
